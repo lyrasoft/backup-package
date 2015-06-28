@@ -55,6 +55,7 @@ $options = array(
 		'!/cache/index.html',
 		'/tmp/*',
 		'!/tmp/index.html',
+		'/administrator/components/com_akeeba/backup/*.zip',
 	)
 );
 

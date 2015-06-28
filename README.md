@@ -4,7 +4,7 @@
 
 ## 使用方式
 
-下載 `backup.php` 檔案到網站內任何位置，打開檔案並配置設定檔:
+下載 [backup.php](https://raw.githubusercontent.com/asukademy/backup-script/master/backup.php) 檔案到網站內任何位置，打開檔案並配置設定檔:
 
 ``` php
 $options = array(
