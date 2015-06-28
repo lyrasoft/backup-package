@@ -28,6 +28,8 @@ $options = array(
 	 *
 	 * Only support mysql now.
 	 */
+	'dump_database' => 1,
+
 	'database' => array(
 		'host' => 'localhost',
 		'user' => '',
@@ -105,7 +107,10 @@ class BackupApplication
 
 		$this->writeHtaccess($backupZipFile->getPath() . '/.htaccess');
 
-		$this->dumpSQL($backupSQLFile);
+		if ($this->getOption('dump_database', true))
+		{
+			$this->dumpSQL($backupSQLFile);
+		}
 
 		$this->zipFiles($backupZipFile, $backupSQLFile);
 
@@ -127,7 +132,14 @@ class BackupApplication
 			@unlink($backupSQLFile->getPathname());
 		}
 
-		$sql = DatabaseDumper::dump($this->getOption('database', array()));
+		try
+		{
+			$sql = DatabaseDumper::dump($this->getOption('database', array()));
+		}
+		catch (RuntimeException $e)
+		{
+			$this->close($e->getMessage());
+		}
 
 		file_put_contents($backupSQLFile->getPathname(), $sql);
 	}
@@ -177,7 +189,10 @@ class BackupApplication
 				$zip->addFile($item->getPathname(), $dest);
 			}
 
-			$zip->addFile($sqlFile->getPathname(), $sqlFile->getBasename());
+			if ($this->getOption('dump_database', true))
+			{
+				$zip->addFile($sqlFile->getPathname(), $sqlFile->getBasename());
+			}
 		}
 
 		return $zip->close();
