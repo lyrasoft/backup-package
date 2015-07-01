@@ -58,7 +58,9 @@ $options = array(
 		'/tmp/*',
 		'!/tmp/index.html',
 		'/administrator/components/com_akeeba/backup/*.zip',
-	)
+	),
+
+	'config' => 'backup.json'
 );
 
 class BackupApplication
@@ -76,6 +78,14 @@ class BackupApplication
 	public function __construct(array $options)
 	{
 		$this->options = $options;
+
+		// Override
+		if (is_file(__DIR__ . '/' . $this->options['config']))
+		{
+			$override = json_decode(file_get_contents(__DIR__ . '/' . $this->options['config']), true);
+
+			$this->options = array_merge($this->options, $override);
+		}
 
 		$this->options['root'] = realpath($path = __DIR__ . '/' . trim($this->getOption('root'), '/'));
 
@@ -358,6 +368,19 @@ HT;
 
 		return trim($str, '-');
 	}
+
+	/**
+	 * registerErrorHandler
+	 *
+	 * @return  void
+	 */
+	public static function registerErrorHandler()
+	{
+		set_error_handler(function($errno, $errstr, $errfile, $errline)
+		{
+			throw new ErrorException($errstr, $errno, 1, $errfile, $errline);
+		});
+	}
 }
 
 /**
@@ -441,9 +464,9 @@ class FileFilter
 class DatabaseDumper
 {
 	/**
-	 * @var  PDO
+	 * @var  mysqli
 	 */
-	protected static $pdo;
+	protected static $db;
 
 	/**
 	 * dump
@@ -461,30 +484,28 @@ class DatabaseDumper
 			'name' => ''
 		), $options);
 
-		static::$pdo = new PDO(
-			sprintf('mysql:host=%s;dbname=%s;charset=utf8', $options['host'], $options['name']),
+		static::$db = new mysqli(
+			$options['host'],
 			$options['user'],
-			$options['pass']
+			$options['pass'],
+			$options['name']
 		);
 
-		static::$pdo->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND, 'SET NAMES utf8');
+		static::$db->set_charset("utf8");
 
 		// Get tables
-		$stat = static::$pdo->query('SHOW TABLES');
-
-		$tables = $stat->fetchAll(PDO::FETCH_COLUMN);
+		$stat = static::$db->query('SHOW TABLES');
 
 		$sql = array();
 
-		// Get data
-		foreach ($tables as $table)
+		while ($result = $stat->fetch_row())
 		{
-			$create = static::$pdo->query('SHOW CREATE TABLE ' . $table)->fetch(PDO::FETCH_NUM);
+			$create = static::$db->query('SHOW CREATE TABLE ' . $result[0])->fetch_row();
 
-			$sql[] = 'DROP TABLE IF EXISTS ' . $table;
+			$sql[] = 'DROP TABLE IF EXISTS ' . $result[0];
 			$sql[] = $create[1];
 
-			static::exportRows($table, $sql);
+			static::exportRows($result[0], $sql);
 		}
 
 		return implode(";\n", $sql) . ';';
@@ -500,17 +521,17 @@ class DatabaseDumper
 	 */
 	public static function exportRows($table, &$sql)
 	{
-		$stat = static::$pdo->query('SELECT * FROM ' . $table);
+		$stat = static::$db->query('SELECT * FROM ' . $table);
 
 		$query = 'INSERT ' . $table . ' VALUES (%s)';
 
-		while ($row = $stat->fetchObject())
+		while ($row = $stat->fetch_object())
 		{
 			$values = array();
 
 			foreach (get_object_vars($row) as $k => $v)
 			{
-				$values[] = static::$pdo->quote($v);
+				$values[] = "'" . static::$db->real_escape_string($v) . "'";
 			}
 
 			$sql[] = sprintf($query, implode(', ', $values));
@@ -518,6 +539,17 @@ class DatabaseDumper
 	}
 }
 
+// Set error handler
+BackupApplication::registerErrorHandler();
+
 $app = new BackupApplication($options);
 
-$app->execute();
+try
+{
+	$app->execute();
+}
+catch (Exception $e)
+{
+	http_response_code($e->getCode());
+	echo $e->getMessage();
+}
