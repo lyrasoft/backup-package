@@ -102,7 +102,10 @@ class BackupApplication
 		// create folder
 		if (!is_dir($path))
 		{
-			@mkdir($path, '0755', true);
+			if (!mkdir($path, 0755, true))
+			{
+				$this->close('Make dir ' . $path . ' fail.');
+			}
 		}
 
 		$this->writeHtaccess($backupZipFile->getPath() . '/.htaccess');
@@ -129,7 +132,7 @@ class BackupApplication
 		// Delete old file
 		if (is_file($backupSQLFile->getPathname()))
 		{
-			@unlink($backupSQLFile->getPathname());
+			unlink($backupSQLFile->getPathname());
 		}
 
 		try
