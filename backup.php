@@ -247,7 +247,7 @@ class BackupApplication
 		{
 			$buffer = fread($handle, $chunksize);
 			echo $buffer;
-			ob_flush();
+			// ob_flush();
 			flush();
 		}
 
