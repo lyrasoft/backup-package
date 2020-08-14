@@ -12,4 +12,5 @@ Thumbs.db
 /vendor
 
 # Project #
-backup.json
+backup_config.php
+/tmp
