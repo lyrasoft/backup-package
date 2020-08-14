@@ -158,11 +158,10 @@ HELP;
             [$proc, $pipe] = $this->sqlDump();
 
             $zip->addFileFromStream('backup.sql', $pipe);
-            
             fclose($pipe);
-            $r = proc_close($proc);
-            
-            echo $r;exit(' @Checkpoint');
+            if (proc_close($proc) !== 0) {
+                throw new \RuntimeException('DB error');
+            }
         }
 
         $this->zipFiles($zip);
@@ -1007,7 +1006,7 @@ $app = new BackupApplication($options);
 try {
     $app->execute(PHP_SAPI);
 } catch (\Throwable $e) {
-    echo $e;
+    echo $e->getMessage();
 
     if (PHP_SAPI === 'cli') {
         exit(255);
