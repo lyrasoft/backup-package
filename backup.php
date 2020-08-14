@@ -15,11 +15,7 @@ $options = [
     'secret' => '{{ secret }}',
     'root' => '.',
 
-    /*
-     * The database information
-     * Only support mysql now.
-     */
-    'dump_database' => 1,
+    'dump_database' => 0,
 
     'database' => [
         'host' => 'localhost',
@@ -30,17 +26,15 @@ $options = [
 
     'pattern' => [
         '/**/*',
-        '!.git',
+        '!vendor/**',
+        '!.git/**',
         '!/logs/*',
-        '/logs/.gitkeep',
         '!/cache/*',
-        '/cache/.gitkeep',
         '!/tmp/*',
-        '!/tmp/.gitignore',
     ],
 
     'config' => 'backup_config.php',
-    'mysqldump' => 'mysqldump'
+    'mysqldump' => 'mysqldump',
 ];
 
 class BackupApplication
@@ -95,6 +89,7 @@ class BackupApplication
         try {
             if ($sapi === 'cli') {
                 $this->executeCli();
+
                 return;
             }
 
@@ -212,7 +207,7 @@ HELP;
 
             $dest = str_replace($root . DIRECTORY_SEPARATOR, '', $file);
 
-            $zip->addFileFromPath($dest, $file);
+            $zip->addFileFromPath(str_replace('\\', '/', $dest), $file);
         }
     }
 
@@ -285,10 +280,10 @@ HELP;
     protected function parseArgv($argv)
     {
         $script = array_shift($argv);
-        $key = null;
-        $args = [];
+        $key    = null;
+        $args   = [];
 
-        $options = array();
+        $options = [];
 
         for ($i = 0, $j = count($argv); $i < $j; $i++) {
             $arg = $argv[$i];
@@ -312,8 +307,8 @@ HELP;
                     $options[$key] = $value;
                 } else {
                     // --bar=baz
-                    $key       = substr($arg, 2, $eqPos - 2);
-                    $value     = substr($arg, $eqPos + 1);
+                    $key           = substr($arg, 2, $eqPos - 2);
+                    $value         = substr($arg, $eqPos + 1);
                     $options[$key] = $value;
                 }
             } elseif (0 === strpos($arg, '-')) {
@@ -321,15 +316,15 @@ HELP;
 
                 // -k=value
                 if (isset($arg[2]) && $arg[2] === '=') {
-                    $key       = $arg[1];
-                    $value     = substr($arg, 3);
+                    $key           = $arg[1];
+                    $value         = substr($arg, 3);
                     $options[$key] = $value;
                 } else {
                     // -abc
                     $chars = str_split(substr($arg, 1));
 
                     foreach ($chars as $char) {
-                        $key       = $char;
+                        $key           = $char;
                         $options[$key] = isset($options[$key]) ? $options[$key] + 1 : 1;
                     }
 
@@ -351,90 +346,63 @@ HELP;
 
 class FileFilter
 {
-    public static function glob(string $pattern, int $flags = 0): array
+    public static function globAll(string $baseDir, array $patterns): \Generator
     {
-        $pattern = static::clean($pattern);
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($baseDir, RecursiveDirectoryIterator::SKIP_DOTS)
+        );
 
-        if (strpos($pattern, '**') === false) {
-            $files = glob($pattern, $flags);
-        } else {
-            $position = strpos($pattern, '**');
-            $rootPattern = substr($pattern, 0, $position - 1);
-            $restPattern = substr($pattern, $position + 2);
-            $patterns = [$rootPattern . $restPattern];
-            $rootPattern .= DIRECTORY_SEPARATOR . '*';
-
-            while ($dirs = glob($rootPattern, GLOB_ONLYDIR)) {
-                $rootPattern .= DIRECTORY_SEPARATOR . '*';
-
-                foreach ($dirs as $dir) {
-                    $patterns[] = $dir . $restPattern;
-                }
-            }
-
-            $files = [];
-
-            foreach ($patterns as $pat) {
-                $files[] = static::glob($pat, $flags);
-            }
-
-            $files = array_merge(...$files);
-        }
-
-        $files = array_unique($files);
-
-        sort($files);
-
-        return $files;
-    }
-
-    public static function globAll(string $baseDir, array $patterns, int $flags = 0): array
-    {
-        $files = [];
-        $inverse = [];
+        $exists        = [];
+        $allowPatterns = [];
+        $denyPatterns  = [];
 
         foreach ($patterns as $pattern) {
             if (strpos($pattern, '!') === 0) {
                 $pattern = substr($pattern, 1);
 
-                $inverse[] = static::glob(
-                    rtrim($baseDir, '\\/') . '/' . ltrim($pattern, '\\/'),
-                    $flags
-                );
+                $denyPatterns[] = $pattern;
             } else {
-                $files[] = static::glob(
-                    rtrim($baseDir, '\\/') . '/' . ltrim($pattern, '\\/'),
-                    $flags
-                );
+                $allowPatterns[] = $pattern;
             }
         }
 
-        if ($files !== []) {
-            $files = array_unique(array_merge(...$files));
+        /** @var \SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                continue;
+            }
+
+            if (in_array($item->getPathname(), $exists, true)) {
+                continue;
+            }
+
+            $file = substr($item->getPathname(), strlen(rtrim($baseDir, '/')));
+            // fnmatch() only work for UNIX file path
+            $file = str_replace(['/', '\\'], '/', $file);
+
+            $match = false;
+
+            foreach ($allowPatterns as $allowPattern) {
+                if (fnmatch($allowPattern, $file)) {
+                    $exists[] = $item->getPathname();
+                    $match = true;
+                    break;
+                }
+            }
+
+            if ($match) {
+                $deny = false;
+
+                foreach ($denyPatterns as $denyPattern) {
+                    // print_r([$denyPattern, $file, fnmatch($denyPattern, $file)]);
+                    $deny = fnmatch($denyPattern, $file) || $deny;
+                }
+
+                if (!$deny) {
+                    yield $item;
+                }
+            }
         }
-
-        if ($inverse !== []) {
-            $inverse = array_unique(array_merge(...$inverse));
-        }
-
-        return array_diff($files, $inverse);
-    }
-
-    public static function clean($path, $ds = DIRECTORY_SEPARATOR)
-    {
-        if ($path === '') {
-            throw new \InvalidArgumentException('Path length is 0.');
-        }
-
-        $path = trim($path, ' ');
-
-        if (($ds === '\\') && ($path[0] === '\\') && ($path[1] === '\\')) {
-            $path = "\\" . preg_replace('#[/\\\\]+#', $ds, $path);
-        } else {
-            $path = preg_replace('#[/\\\\]+#', $ds, $path);
-        }
-
-        return $path;
     }
 }
 
@@ -495,7 +463,7 @@ class ZipStream
             $output = fopen($output, 'rb+');
         }
 
-        $this->output  = $output;
+        $this->output = $output;
     }
 
     public function addFile(string $name, string $data): void

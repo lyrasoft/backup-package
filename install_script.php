@@ -31,12 +31,14 @@ if (in_array(strtolower(ask("Do you want to use DB? [Y/n]") ?: 'y'), $y, true)) 
 
     $content = str_replace(
         [
+            "'dump_database' => 0",
             "'host' => 'localhost'",
             "'user' => ''",
             "'pass' => ''",
             "'name' => ''",
         ],
         [
+            "'dump_database' => 1",
             "'host' => '$host'",
             "'user' => '$user'",
             "'pass' => '$password'",
