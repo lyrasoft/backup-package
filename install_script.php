@@ -66,7 +66,7 @@ fwrite(STDOUT, "\nSuccess install backup.php file.");
 fwrite(STDOUT, "\nToken: $token\n");
 fwrite(
     STDOUT,
-    "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip"
+    "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip\n\n"
 );
 
 function ask($question) {
