@@ -158,6 +158,11 @@ HELP;
             [$proc, $pipe] = $this->sqlDump();
 
             $zip->addFileFromStream('backup.sql', $pipe);
+            
+            fclose($pipe);
+            $r = proc_close($proc);
+            
+            echo $r;exit(' @Checkpoint');
         }
 
         $this->zipFiles($zip);
