@@ -52,7 +52,7 @@ $options = [
         '/tmp/*',
     ],
 
-    'config' => 'backup.json',
+    'config' => 'backup_config.php',
     'mysqldump' => 'mysqldump'
 ];
 
@@ -76,7 +76,7 @@ class BackupApplication
 
         // Override
         if (is_file(__DIR__ . '/' . $this->options['config'])) {
-            $override = json_decode(file_get_contents(__DIR__ . '/' . $this->options['config']), true);
+            $override = require __DIR__ . '/' . $this->options['config'];
 
             $this->options = array_merge($this->options, $override);
         }
@@ -331,6 +331,9 @@ class FileFilter
     }
 }
 
+/**
+ * The ZipStream class. Forked from: https://github.com/maennchen/ZipStream-PHP
+ */
 class ZipStream
 {
     public const DEFLATE_LEVEL = 6;
