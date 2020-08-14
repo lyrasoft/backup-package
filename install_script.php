@@ -11,7 +11,7 @@ copy('https://raw.githubusercontent.com/lyrasoft/backup-script/master/backup.php
 
 $file = __DIR__ . '/backup.php';
 $content = file_get_contents($file);
-$content = str_replace('{{ secret }}', bin2hex(random_bytes(16)), $content);
+$content = str_replace('{{ secret }}', $secret = bin2hex(random_bytes(16)), $content);
 
 $config = [];
 
@@ -47,11 +47,13 @@ if (in_array(strtolower(ask("Do you want to use DB? [Y/n]") ?: 'y'), $y, true)) 
 }
 
 $content = file_put_contents($file, $content);
+$token = sha1(md5('LYRASOFT:' . $secret));
 
 [$self] = get_included_files();
 unlink($self);
 
 fwrite(STDOUT, "\nSuccess install backup.php file.");
+fwrite(STDOUT, "\nToken: $token.");
 
 function ask($question) {
     fwrite(STDOUT, $question);
