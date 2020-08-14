@@ -1,8 +1,0 @@
-{
-    "database": {
-        "user": "root",
-        "pass": "1234",
-        "name": "earth"
-    },
-    "mysqldump": "/Applications/XAMPP/xamppfiles/bin/mysqldump"
-}
