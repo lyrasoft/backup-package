@@ -60,6 +60,12 @@ class BackupApplication
 {
     protected $sapi = '';
 
+    protected $cli = [
+        'file' => [],
+        'args' => [],
+        'options' => [],
+    ];
+
     /**
      * @var  array
      */
@@ -99,43 +105,58 @@ class BackupApplication
     {
         $this->sapi = $sapi;
 
-        if ($sapi === 'cli') {
-            $this->executeCli();
-            return;
+        try {
+            if ($sapi === 'cli') {
+                $this->executeCli();
+                return;
+            }
+
+            $this->authenticate();
+
+            $this->doBackup();
+        } catch (\Throwable $e) {
+            $msg = isset($this->cli['options']['v']) ? (string) $e : $e->getMessage();
+
+            $this->close($msg, $e->getCode());
         }
-
-        $this->authenticate();
-
-        $this->doBackup();
     }
 
     public function executeCli(): void
     {
-        $argv = $_SERVER['argv'];
-        $file = array_shift($argv);
+        [$this->cli['file'], $this->cli['args'], $this->cli['options']] = $this->parseArgv($_SERVER['argv']);
 
-        if (count($argv) === 0) {
-            $token = $this->getToken($this->options['secret'] ?? $this->close('Np secret', 400));
+        if (!empty($options['h'])) {
+            $this->help();
+        }
 
-            echo <<<HELP
-LYRASOFT Backup script
-
-Token: {$token}
-
-Options:
--h    Show help.
--u    Show backup URL.
-
-Commands:
-
-Usage: {$file} <backup file position>
-HELP;
+        if (($this->cli['args'][0] ?? null) === 'token') {
+            echo $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
             $this->close('', 200);
         }
 
-        $this->doBackup(fopen($argv[0], 'wb'));
+        $this->doBackup(STDOUT);
+        $this->close('', 200);
+    }
 
-        echo sprintf('Output Zip file to: ' . realpath($argv[0]));
+    protected function help(): void
+    {
+        $file = $this->cli['file'];
+        echo <<<HELP
+LYRASOFT Backup script
+
+Options:
+    -h  Show help.
+    -v  Show more error details.
+
+Commands:
+    >|to    Backup to this position.
+    token   Show token for URL backup.
+    
+Usages:
+    php {$file} > /tmp/backup.zip   Backup to this file.
+    php {$file} > /tmp/             Backup to this dir with default file name.
+HELP;
+        $this->close('', 200);
     }
 
     public function doBackup($output = 'php://output', bool $headers = true)
@@ -177,9 +198,9 @@ HELP;
         $cmd = sprintf(
             '%s -u %s -p%s %s',
             $this->options['mysqldump'] ?? 'mysqldump',
-            $this->options['database']['user'],
-            $this->options['database']['pass'],
-            $this->options['database']['name']
+            $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
+            $this->cli['options']['p'] ?? $this->options['database']['pass'] ?? '',
+            $this->cli['options']['db'] ?? $this->options['database']['name'] ?? ''
         );
 
         $descriptorspec = [
@@ -203,6 +224,10 @@ HELP;
 
         /** @var \SplFileInfo $item */
         foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                continue;
+            }
+
             // Excludes
             if ($filter->test($item->getPathname())) {
                 continue;
@@ -240,7 +265,7 @@ HELP;
     public function close(string $msg, int $code = 401): void
     {
         if ($this->sapi === 'cli') {
-            echo $msg;
+            fwrite(STDERR, $msg);
 
             exit($code === 200 ? 0 : 255);
         }
@@ -278,6 +303,72 @@ HELP;
                 throw new ErrorException($errstr, $errno, 1, $errfile, $errline);
             }
         );
+    }
+
+    protected function parseArgv($argv)
+    {
+        $script = array_shift($argv);
+        $key = null;
+        $args = [];
+
+        $options = array();
+
+        for ($i = 0, $j = count($argv); $i < $j; $i++) {
+            $arg = $argv[$i];
+
+            // --foo --bar=baz
+            if (0 === strpos($arg, '--')) {
+                $eqPos = strpos($arg, '=');
+
+                // --foo
+                if ($eqPos === false) {
+                    $key = substr($arg, 2);
+
+                    // --foo value
+                    if ($i + 1 < $j && $argv[$i + 1][0] !== '-') {
+                        $value = $argv[$i + 1];
+                        $i++;
+                    } else {
+                        $value = $options[$key] ?? true;
+                    }
+
+                    $options[$key] = $value;
+                } else {
+                    // --bar=baz
+                    $key       = substr($arg, 2, $eqPos - 2);
+                    $value     = substr($arg, $eqPos + 1);
+                    $options[$key] = $value;
+                }
+            } elseif (0 === strpos($arg, '-')) {
+                // -k=value -abc
+
+                // -k=value
+                if (isset($arg[2]) && $arg[2] === '=') {
+                    $key       = $arg[1];
+                    $value     = substr($arg, 3);
+                    $options[$key] = $value;
+                } else {
+                    // -abc
+                    $chars = str_split(substr($arg, 1));
+
+                    foreach ($chars as $char) {
+                        $key       = $char;
+                        $options[$key] = isset($options[$key]) ? $options[$key] + 1 : 1;
+                    }
+
+                    // -a a-value
+                    if (($i + 1 < $j) && ($argv[$i + 1][0] !== '-') && (count($chars) === 1)) {
+                        $options[$key] = $argv[$i + 1];
+                        $i++;
+                    }
+                }
+            } else {
+                // Plain-arg
+                $args[] = $arg;
+            }
+        }
+
+        return [$script, $args, $options];
     }
 }
 
@@ -1006,14 +1097,4 @@ BackupApplication::registerErrorHandler();
 
 $app = new BackupApplication($options);
 
-try {
-    $app->execute(PHP_SAPI);
-} catch (\Throwable $e) {
-    echo $e->getMessage();
-
-    if (PHP_SAPI === 'cli') {
-        exit(255);
-    }
-
-    http_response_code($e->getCode());
-}
+$app->execute(PHP_SAPI);
