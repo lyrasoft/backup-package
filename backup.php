@@ -13,6 +13,7 @@ $options = [
      * Basic Information
      */
     'secret' => '{{ secret }}',
+    'name' => '',
     'root' => '.',
 
     'dump_database' => 0,
@@ -113,6 +114,13 @@ class BackupApplication
 
         if (($this->cli['args'][0] ?? null) === 'token') {
             echo $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
+            $this->close('', 200);
+        }
+
+        if (($this->cli['args'][0] ?? null) === 'nas') {
+            $token = $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
+            $pname = $this->options['name'] ?: 'backup';
+            echo "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip";
             $this->close('', 200);
         }
 
