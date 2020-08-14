@@ -47,7 +47,6 @@ HELP;
         $this->out('Release version: ' . $targetVersion);
 
         static::writeVersion($targetVersion);
-        $this->replaceDocblockTags($targetVersion);
 
         $this->exec(sprintf('git commit -am "Release version: %s"', $targetVersion));
         $this->exec(sprintf('git tag %s', $targetVersion));
@@ -118,46 +117,6 @@ HELP;
         }
 
         return $version;
-    }
-
-    /**
-     * replaceDocblockTags
-     *
-     * @param string $version
-     *
-     * @return  void
-     */
-    protected function replaceDocblockTags(string $version): void
-    {
-        $this->out('Replacing Docblock...');
-
-        $files = new RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(
-                __DIR__ . '/../src',
-                \FilesystemIterator::SKIP_DOTS
-            )
-        );
-
-        /** @var \SplFileInfo $file */
-        foreach ($files as $file) {
-            if ($file->isDir() || $file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $content = file_get_contents($file->getPathname());
-
-            $content = str_replace(
-                ['{DEPLOY_VERSION}', '__DEPLOY_VERSION__', '__LICENSE__', '${ORGANIZATION}', '{ORGANIZATION}'],
-                [$version, $version, 'LGPL-2.0-or-later', 'LYRASOFT', 'LYRASOFT'],
-                $content
-            );
-
-            file_put_contents($file->getPathname(), $content);
-        }
-
-        $this->exec('git checkout master');
-        $this->exec(sprintf('git commit -am "Prepare for %s release."', $version));
-        $this->exec('git push origin master');
     }
 
     /**
