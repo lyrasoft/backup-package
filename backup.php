@@ -120,7 +120,7 @@ class BackupApplication
         if (($this->cli['args'][0] ?? null) === 'nas') {
             $token = $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
             $pname = $this->options['name'] ?: 'backup';
-            echo "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip";
+            echo "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip\n\n";
             $this->close('', 200);
         }
 
