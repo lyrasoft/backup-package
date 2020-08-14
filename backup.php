@@ -13,7 +13,7 @@ $options = [
      * Basic Information
      */
     'secret' => '{{ secret }}',
-    'root' => '/',
+    'root' => '.',
 
     /*
      * The database information
@@ -28,28 +28,15 @@ $options = [
         'name' => '',
     ],
 
-    'includes' => [
-        '*'
-    ],
-
-    /*
-     * Ignore files of force included files.
-     *
-     * Ignore file:
-     * /folder/to/ignore/*
-     *
-     * Force include
-     * !/folder/to/retain.txt
-     */
-    'ignores' => [
-        '*/.git/*',
-        '/logs/*',
-        '!/logs/index.html',
-        '/log/*',
-        '!/log/index.html',
-        '/cache/*',
-        '!/cache/index.html',
-        '/tmp/*',
+    'pattern' => [
+        '/**/*',
+        '!.git',
+        '!/logs/*',
+        '/logs/.gitkeep',
+        '!/cache/*',
+        '/cache/.gitkeep',
+        '!/tmp/*',
+        '!/tmp/.gitignore',
     ],
 
     'config' => 'backup_config.php',
@@ -216,26 +203,16 @@ HELP;
 
     protected function zipFiles(ZipStream $zip): void
     {
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($this->getOption('root'), RecursiveDirectoryIterator::SKIP_DOTS)
-        );
+        $root = realpath($this->getOption('root'));
 
-        $filter = new FileFilter($this->getOption('ignores'), $this->getOption('root'));
-
-        /** @var \SplFileInfo $item */
-        foreach ($iterator as $item) {
-            if ($item->isDir()) {
+        foreach (FileFilter::globAll($root, $this->options['pattern']) as $file) {
+            if (is_dir($file)) {
                 continue;
             }
 
-            // Excludes
-            if ($filter->test($item->getPathname())) {
-                continue;
-            }
+            $dest = str_replace($root . DIRECTORY_SEPARATOR, '', $file);
 
-            $dest = str_replace($this->getOption('root') . DIRECTORY_SEPARATOR, '', $item->getPathname());
-
-            $zip->addFileFromPath($dest, $item->getPathname());
+            $zip->addFileFromPath($dest, $file);
         }
     }
 
@@ -374,51 +351,90 @@ HELP;
 
 class FileFilter
 {
-    /**
-     * @var  array
-     */
-    protected $rules = [];
-
-    /**
-     * @var  string
-     */
-    protected $root = __DIR__;
-
-    public function __construct(array $rules, string  $root = __DIR__)
+    public static function glob(string $pattern, int $flags = 0): array
     {
-        $this->rules = $rules;
+        $pattern = static::clean($pattern);
 
-        foreach ($this->rules as &$rule) {
-            $rule = str_replace(['/', '\\'], '/', $rule);
+        if (strpos($pattern, '**') === false) {
+            $files = glob($pattern, $flags);
+        } else {
+            $position = strpos($pattern, '**');
+            $rootPattern = substr($pattern, 0, $position - 1);
+            $restPattern = substr($pattern, $position + 2);
+            $patterns = [$rootPattern . $restPattern];
+            $rootPattern .= DIRECTORY_SEPARATOR . '*';
+
+            while ($dirs = glob($rootPattern, GLOB_ONLYDIR)) {
+                $rootPattern .= DIRECTORY_SEPARATOR . '*';
+
+                foreach ($dirs as $dir) {
+                    $patterns[] = $dir . $restPattern;
+                }
+            }
+
+            $files = [];
+
+            foreach ($patterns as $pat) {
+                $files[] = static::glob($pat, $flags);
+            }
+
+            $files = array_merge(...$files);
         }
 
-        $this->root = $root;
+        $files = array_unique($files);
+
+        sort($files);
+
+        return $files;
     }
 
-    public function test(string $string): string
+    public static function globAll(string $baseDir, array $patterns, int $flags = 0): array
     {
-        $match = false;
+        $files = [];
+        $inverse = [];
 
-        // fnmatch() only work for UNIX file path
-        $string = str_replace(['/', '\\'], '/', $string);
+        foreach ($patterns as $pattern) {
+            if (strpos($pattern, '!') === 0) {
+                $pattern = substr($pattern, 1);
 
-        $string = substr($string, strlen(rtrim($this->root, '/')));
-
-        foreach ($this->rules as $rule) {
-            // Negative
-            if (strpos($rule, '!') === 0) {
-                $rule = substr($rule, 1);
-
-                if (fnmatch($rule, $string)) {
-                    $match = false;
-                }
-            } elseif (fnmatch($rule, $string)) {
-                // Normal
-                $match = true;
+                $inverse[] = static::glob(
+                    rtrim($baseDir, '\\/') . '/' . ltrim($pattern, '\\/'),
+                    $flags
+                );
+            } else {
+                $files[] = static::glob(
+                    rtrim($baseDir, '\\/') . '/' . ltrim($pattern, '\\/'),
+                    $flags
+                );
             }
         }
 
-        return $match;
+        if ($files !== []) {
+            $files = array_unique(array_merge(...$files));
+        }
+
+        if ($inverse !== []) {
+            $inverse = array_unique(array_merge(...$inverse));
+        }
+
+        return array_diff($files, $inverse);
+    }
+
+    public static function clean($path, $ds = DIRECTORY_SEPARATOR)
+    {
+        if ($path === '') {
+            throw new \InvalidArgumentException('Path length is 0.');
+        }
+
+        $path = trim($path, ' ');
+
+        if (($ds === '\\') && ($path[0] === '\\') && ($path[1] === '\\')) {
+            $path = "\\" . preg_replace('#[/\\\\]+#', $ds, $path);
+        } else {
+            $path = preg_replace('#[/\\\\]+#', $ds, $path);
+        }
+
+        return $path;
     }
 }
 
