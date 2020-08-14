@@ -53,7 +53,7 @@ $token = sha1(md5('LYRASOFT:' . $secret));
 unlink($self);
 
 fwrite(STDOUT, "\nSuccess install backup.php file.");
-fwrite(STDOUT, "\nToken: $token.");
+fwrite(STDOUT, "\nToken: $token\n");
 
 function ask($question) {
     fwrite(STDOUT, $question);
