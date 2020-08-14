@@ -49,6 +49,12 @@ Show Token:
 php backup.php token
 ```
 
+Show NAS download script:
+
+```
+php backup.php nas
+```
+
 Show Help
 
 ```

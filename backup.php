@@ -141,6 +141,7 @@ Options:
 Commands:
     >|to    Backup to this position.
     token   Show token for URL backup.
+    nas     Show NAS download script.
     
 Usages:
     php {$file} > /tmp/backup.zip   Backup to this file.
