@@ -25,6 +25,14 @@ $content = str_replace(
     $content
 );
 
+$root = ask('Backup Root[.]: ') ?: '.';
+
+$content = str_replace(
+    "'root' => '.'",
+    "'root' => '$root'",
+    $content
+);
+
 if (in_array(strtolower(ask("Do you want to use DB? [Y/n]") ?: 'y'), $y, true)) {
     $host = ask("Host[localhost]: ") ?: 'localhost';
     $name = ask("DB Name: ");
