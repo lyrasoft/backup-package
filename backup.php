@@ -104,7 +104,7 @@ class BackupApplication
             return;
         }
 
-        // $this->authenticate();
+        $this->authenticate();
 
         $this->doBackup();
     }
