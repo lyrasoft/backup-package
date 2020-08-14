@@ -6,9 +6,7 @@
  */
 
 // Uncomment if debugging
-use ZipStream\Option\File as FileOptions;
-
-error_reporting(-1);
+// error_reporting(-1);
 
 $options = [
     /*
