@@ -183,7 +183,9 @@ HELP;
             }
         }
 
-        $this->zipFiles($zip);
+        if ($this->getOption('dump_files')) {
+            $this->zipFiles($zip);
+        }
 
         $zip->finish();
     }
