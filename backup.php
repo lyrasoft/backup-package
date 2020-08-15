@@ -111,7 +111,7 @@ class BackupApplication
     {
         [$this->cli['file'], $this->cli['args'], $this->cli['options']] = $this->parseArgv($_SERVER['argv']);
 
-        if (!empty($options['h'])) {
+        if (!empty($this->cli['options']['h'])) {
             $this->help();
         }
 
