@@ -25,15 +25,23 @@ $content = str_replace(
     $content
 );
 
-$root = ask('Backup Root[.]: ') ?: '.';
+if (in_array(strtolower(ask("Do you want to dump Files? [Y/n]") ?: 'y'), $y, true)) {
+    $root = ask('Backup Root[.]: ') ?: '.';
 
-$content = str_replace(
-    "'root' => '.'",
-    "'root' => '$root'",
-    $content
-);
+    $content = str_replace(
+        [
+            "'dump_files' => 0",
+            "'root' => '.'"
+        ],
+        [
+            "'dump_files' => 1",
+            "'root' => '$root'"
+        ],
+        $content
+    );
+}
 
-if (in_array(strtolower(ask("Do you want to use DB? [Y/n]") ?: 'y'), $y, true)) {
+if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true)) {
     $host = ask("Host[localhost]: ") ?: 'localhost';
     $name = ask("DB Name: ");
     $user = ask("User[root]: ") ?: 'root';
@@ -72,10 +80,18 @@ unlink($self);
 
 fwrite(STDOUT, "\nSuccess install backup.php file.");
 fwrite(STDOUT, "\nToken: $token\n");
-fwrite(
-    STDOUT,
-    "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip\n\n"
-);
+
+if (in_array(strtolower(ask("Show NAS download script? [Y/n]") ?: 'y'), $y, true)) {
+    $url = ask('Site URL: ') ?: '{https://site.com}';
+    $url = rtrim($url, '/') . '/backup.php';
+
+    fwrite(
+        STDOUT,
+        "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip\n\n"
+    );
+}
+
+fwrite(STDOUT, "\n");
 
 function ask($question) {
     fwrite(STDOUT, $question);

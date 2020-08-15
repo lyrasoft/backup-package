@@ -25,10 +25,13 @@ $options = [
         'name' => '',
     ],
 
+    'dump_files' => 0,
+
     'pattern' => [
         '/**/*',
-        '!vendor/**',
-        '!.git/**',
+        '!/node_modules/**',
+        '!/vendor/**',
+        '!/.git/**',
         '!/logs/*',
         '!/cache/*',
         '!/tmp/*',
@@ -120,7 +123,11 @@ class BackupApplication
         if (($this->cli['args'][0] ?? null) === 'nas') {
             $token = $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
             $pname = $this->options['name'] ?: 'backup';
-            echo "\nNAS script:\n  curl -sS -X POST --data \"token=$token\" {https://site.com}/backup.php -o /volume1/megamount/backup/$pname/$pname-$(date +%Y-%m-%d).zip\n\n";
+
+            $url = $this->ask('Site URL: ') ?: '{https://site.com}';
+            $url = rtrim($url, '/') . '/backup.php';
+
+            echo "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip\n\n";
             $this->close('', 200);
         }
 
@@ -350,6 +357,12 @@ HELP;
         }
 
         return [$script, $args, $options];
+    }
+
+    public function ask(string $question)
+    {
+        fwrite(STDOUT, $question);
+        return trim(fgets(STDIN), "\n");
     }
 }
 
