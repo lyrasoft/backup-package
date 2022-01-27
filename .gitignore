@@ -9,7 +9,6 @@ Thumbs.db
 .idea/
 
 # Composer #
-composer.json
 composer.lock
 /vendor
 
