@@ -80,12 +80,10 @@ if (in_array(strtolower(ask("Show NAS download script? [Y/n]") ?: 'y'), $y, true
     $url = ask('Site URL: ') ?: '{https://site.com}';
     $url = rtrim($url, '/') . '/backup.php';
 
-    // fwrite(
-    //     STDOUT,
-    //     "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip -k\n\n"
-    // );
-
-    exec('php backup.php nas');
+    fwrite(
+        STDOUT,
+        "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip -k\n\n"
+    );
 }
 
 fwrite(STDOUT, "\n");
