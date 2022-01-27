@@ -28,7 +28,7 @@ $options = [
         'host' => 'localhost',
         'user' => '',
         'pass' => '',
-        'name' => '',
+        'dbname' => '',
     ],
 
     'dump_files' => 0,
@@ -211,7 +211,7 @@ HELP;
             $this->cli['options']['host'] ?? $this->options['database']['host'] ?? '',
             $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
             $this->cli['options']['p'] ?? $this->options['database']['pass'] ?? '',
-            $this->cli['options']['db'] ?? $this->options['database']['name'] ?? ''
+            $this->cli['options']['db'] ?? $this->options['database']['dbname'] ?? ''
         );
 
         $descriptorspec = [

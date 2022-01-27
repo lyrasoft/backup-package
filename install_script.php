@@ -41,7 +41,7 @@ if (in_array(strtolower(ask("Do you want to dump Files? [Y/n]") ?: 'y'), $y, tru
 
 if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true)) {
     $host = ask("Host[localhost]: ") ?: 'localhost';
-    $name = ask("DB Name: ");
+    $dbname = ask("DB Name: ");
     $user = ask("User[root]: ") ?: 'root';
 
     fwrite(STDOUT, "Password: ");
@@ -57,14 +57,14 @@ if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true))
             "'host' => 'localhost'",
             "'user' => ''",
             "'pass' => ''",
-            "'name' => ''",
+            "'dbname' => ''",
         ],
         [
             "'dump_database' => 1",
             "'host' => '$host'",
             "'user' => '$user'",
             "'pass' => '$password'",
-            "'name' => '$name'",
+            "'dbname' => '$dbname'",
         ],
         $content
     );
@@ -73,9 +73,6 @@ if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true))
 $content = file_put_contents($file, $content);
 $token = sha1(md5('LYRASOFT:' . $secret));
 
-[$self] = get_included_files();
-unlink($self);
-
 fwrite(STDOUT, "\nSuccess install backup.php file.");
 fwrite(STDOUT, "\nToken: $token\n");
 
@@ -83,10 +80,12 @@ if (in_array(strtolower(ask("Show NAS download script? [Y/n]") ?: 'y'), $y, true
     $url = ask('Site URL: ') ?: '{https://site.com}';
     $url = rtrim($url, '/') . '/backup.php';
 
-    fwrite(
-        STDOUT,
-        "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip\n\n"
-    );
+    // fwrite(
+    //     STDOUT,
+    //     "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip -k\n\n"
+    // );
+
+    exec('php backup.php nas');
 }
 
 fwrite(STDOUT, "\n");
