@@ -5,6 +5,8 @@
  * @copyright  Copyright (C) 2015 LYRASOFT. All rights reserved.
  */
 
+use GuzzleHttp\Psr7\CachingStream;
+use GuzzleHttp\Psr7\Stream;
 use ZipStream\ZipStream;
 
 include __DIR__ . '/vendor/autoload.php';
@@ -180,8 +182,12 @@ HELP;
         if ($this->getOption('dump_database', true)) {
             [$proc, $pipe] = $this->sqlDump();
 
-            $zip->addFileFromStream('backup.sql', $pipe);
-            fclose($pipe);
+            $stream = new CachingStream(new Stream($pipe));
+
+            $zip->addFileFromPsr7Stream('site-sql-backup.sql', $stream);
+
+            $stream->close();
+
             if (proc_close($proc) !== 0) {
                 throw new \RuntimeException('DB error');
             }
@@ -200,8 +206,9 @@ HELP;
     protected function sqlDump(): array
     {
         $cmd = sprintf(
-            '%s -u %s -p%s %s',
+            '%s -h %s -u %s -p%s %s',
             $this->options['mysqldump'] ?? 'mysqldump',
+            $this->cli['options']['host'] ?? $this->options['database']['host'] ?? '',
             $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
             $this->cli['options']['p'] ?? $this->options['database']['pass'] ?? '',
             $this->cli['options']['db'] ?? $this->options['database']['name'] ?? ''
