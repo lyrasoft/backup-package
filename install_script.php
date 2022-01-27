@@ -7,8 +7,6 @@
  * @license    __LICENSE__
  */
 
-copy('https://raw.githubusercontent.com/lyrasoft/backup-script/master/backup.php', 'backup.php');
-
 $file = __DIR__ . '/backup.php';
 $content = file_get_contents($file);
 $content = str_replace('{{ secret }}', $secret = bin2hex(random_bytes(16)), $content);
