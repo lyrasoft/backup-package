@@ -1,6 +1,12 @@
 {
     "name": "lyrasoft/backup",
+    "license": "MIT",
     "require": {
         "maennchen/zipstream-php": "^2.0"
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "php ./install_script.php"
+        ]
     }
 }
