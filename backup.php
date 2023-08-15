@@ -207,7 +207,7 @@ HELP;
     protected function sqlDump(): array
     {
         $cmd = sprintf(
-            '%s -h %s -u %s -p%s %s %s',
+            '%s -h %s -u %s -p"%s" %s %s',
             $this->options['mysqldump'] ?? 'mysqldump',
             $this->cli['options']['host'] ?? $this->options['database']['host'] ?? '',
             $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
