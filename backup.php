@@ -45,6 +45,7 @@ $options = [
 
     'config' => 'backup_config.php',
     'mysqldump' => 'mysqldump',
+    'mysqldump_extra' => ''
 ];
 
 class BackupApplication
@@ -206,12 +207,13 @@ HELP;
     protected function sqlDump(): array
     {
         $cmd = sprintf(
-            '%s -h %s -u %s -p%s %s',
+            '%s -h %s -u %s -p%s %s %s',
             $this->options['mysqldump'] ?? 'mysqldump',
             $this->cli['options']['host'] ?? $this->options['database']['host'] ?? '',
             $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
             $this->cli['options']['p'] ?? $this->options['database']['pass'] ?? '',
-            $this->cli['options']['db'] ?? $this->options['database']['dbname'] ?? ''
+            $this->cli['options']['db'] ?? $this->options['database']['dbname'] ?? '',
+            $this->cli['options']['extra'] ?? $this->options['mysqldump_extra'] ?? ''
         );
 
         $descriptorspec = [
