@@ -2,8 +2,14 @@
     "name": "lyrasoft/backup",
     "license": "MIT",
     "require": {
-        "maennchen/zipstream-php": "^2.0",
+        "php": ">=8.2",
+        "maennchen/zipstream-php": "^3.0",
         "guzzlehttp/psr7": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lyrasoft\\Backup\\": "src/"
+        }
     },
     "scripts": {
         "post-create-project-cmd": [
