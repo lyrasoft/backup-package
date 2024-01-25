@@ -15,8 +15,6 @@ class BackupCli extends Application
         protected array $options = []
     ) {
         parent::__construct($name, $version);
-
-        $this->options = $options;
     }
 
     public function getOptions(): array

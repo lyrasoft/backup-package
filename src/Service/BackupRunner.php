@@ -11,7 +11,6 @@ use RecursiveIteratorIterator;
 use Symfony\Component\Process\Pipes\UnixPipes;
 use Symfony\Component\Process\Pipes\WindowsPipes;
 use Symfony\Component\Process\Process;
-use Windwalker\Utilities\Options\OptionAccessTrait;
 use Windwalker\Utilities\StrNormalize;
 use ZipStream\ZipStream;
 

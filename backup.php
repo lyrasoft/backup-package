@@ -13,6 +13,11 @@ include $autoload;
 // Uncomment if debugging
 // error_reporting(-1);
 
+function env(string $name, mixed $default = null): ?string
+{
+    return $_SERVER[$name] ?? $_ENV[$name] ?? $default;
+}
+
 $configFile = __DIR__ . '/config.php';
 $options = [];
 
