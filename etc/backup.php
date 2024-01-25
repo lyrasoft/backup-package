@@ -9,14 +9,7 @@ return [
         ],
         'profiles' => [
             'default' => [
-                /*
-                 * Basic Information
-                 */
-                'secret' => '{{ secret }}',
-                'name' => '',
-                'root' => '.',
-
-                'dump_database' => 0,
+                'dump_database' => true,
 
                 'database' => [
                     'host' => env('DATABASE_HOST'),

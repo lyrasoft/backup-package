@@ -69,7 +69,7 @@ class BackupRunner
         );
 
         if ($this->getOption('dump_database') ?? true) {
-            // $this->zipSql($zip);
+            $this->zipSql($zip);
         }
 
         if ($this->getOption('dump_files')) {
@@ -94,7 +94,7 @@ class BackupRunner
 
         if ($pipes instanceof WindowsPipes) {
             $fp = fopen($pipes->getFiles()[1], 'rb');
-            usleep(100000);
+            sleep(1);
         } else {
             $fp = $pipes->pipes[1];
         }
