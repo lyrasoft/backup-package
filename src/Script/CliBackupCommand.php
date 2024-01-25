@@ -33,6 +33,34 @@ class CliBackupCommand extends Command
             'Save to path.',
             'php://stdout'
         );
+
+        $this->addOption(
+            'host',
+            '',
+            InputOption::VALUE_REQUIRED,
+            'Database host.'
+        );
+
+        $this->addOption(
+            'user',
+            'u',
+            InputOption::VALUE_REQUIRED,
+            'Database user.'
+        );
+
+        $this->addOption(
+            'pass',
+            'p',
+            InputOption::VALUE_REQUIRED,
+            'Database password.'
+        );
+
+        $this->addOption(
+            'db',
+            '',
+            InputOption::VALUE_REQUIRED,
+            'Database name.'
+        );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -42,6 +70,16 @@ class CliBackupCommand extends Command
         /** @var BackupCli $app */
         $app = $this->getApplication();
         $options = $app->getOptions();
+
+        $dbOptions = [
+            'host' => $input->getOption('host'),
+            'user' => $input->getOption('user'),
+            'pass' => $input->getOption('pass'),
+            'dbname' => $input->getOption('db'),
+        ];
+        $dbOptions = array_filter($dbOptions);
+
+        $options['database'] = array_merge($options['database'], $dbOptions);
 
         $runner = new BackupRunner($options);
         $runner->backup($backupOutput);
