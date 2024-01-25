@@ -6,7 +6,8 @@
         "maennchen/zipstream-php": "^3.0",
         "symfony/console": "^5.0||^6.0||^7.0",
         "symfony/process": "^5.0||^6.0||^7.0",
-        "windwalker/http": "^4.0"
+        "windwalker/http": "^4.0",
+        "windwalker/data": "^4.1"
     },
     "autoload": {
         "psr-4": {
