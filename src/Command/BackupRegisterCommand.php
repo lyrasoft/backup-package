@@ -80,8 +80,9 @@ class BackupRegisterCommand extends Command
 
         $runner = new BackupRunner($options);
 
+        $url = rtrim((string) $url, '/') . '/backup';
+
         if ($show) {
-            $url = rtrim($url, '/') . '/backup';
             $output->writeln($runner->nas($this->app->getAppName(), $url));
         } else {
             $title = $this->app->getAppName()
@@ -96,7 +97,7 @@ class BackupRegisterCommand extends Command
                 [
                     'title' => $title,
                     'token' => $runner->token(),
-                    'url' => rtrim($url, '/') . '/backup'
+                    'url' => $url
                 ]
             );
 

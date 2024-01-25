@@ -62,8 +62,9 @@ class CliRegisterCommand extends Command
 
         $runner = new BackupRunner($options);
 
+        $url = rtrim((string) $url, '/') . '/backup.php';
+
         if ($show) {
-            $url = rtrim($url, '/') . '/backup.php';
             $output->writeln($runner->nas($options['name'], $url));
         } else {
             $title = $options['name']
@@ -78,7 +79,7 @@ class CliRegisterCommand extends Command
                 [
                     'title' => $title,
                     'token' => $runner->token(),
-                    'url' => rtrim($url, '/') . '/backup.php',
+                    'url' => $url,
                 ]
             );
 
