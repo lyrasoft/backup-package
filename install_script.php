@@ -1,12 +1,5 @@
 <?php
 
-/**
- * Part of backup-script project.
- *
- * @copyright  Copyright (C) 2020 ${ORGANIZATION}.
- * @license    __LICENSE__
- */
-
 $file = __DIR__ . '/backup.php';
 $content = file_get_contents($file);
 $content = str_replace('{{ secret }}', $secret = bin2hex(random_bytes(16)), $content);
@@ -71,19 +64,11 @@ if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true))
 }
 
 $content = file_put_contents($file, $content);
-$token = sha1(md5('LYRASOFT:' . $secret));
 
 fwrite(STDOUT, "\nSuccess install backup.php file.");
-fwrite(STDOUT, "\nToken: $token\n");
 
-if (in_array(strtolower(ask("Show NAS download script? [Y/n]") ?: 'y'), $y, true)) {
-    $url = ask('Site URL: ') ?: '{https://site.com}';
-    $url = rtrim($url, '/') . '/backup.php';
-
-    fwrite(
-        STDOUT,
-        "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip -k\n\n"
-    );
+if (in_array(strtolower(ask("Register backup to portal? [Y/n]") ?: 'y'), $y, true)) {
+    exec('php ./backup.php register');
 }
 
 fwrite(STDOUT, "\n");

@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Lyrasoft\Backup;
 
+use ErrorException;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Lyrasoft\Backup\Script\CliBackupCommand;
+use Lyrasoft\Backup\Script\CliRegisterCommand;
+use Lyrasoft\Backup\Script\CliTokenCommand;
+use Lyrasoft\Backup\Service\BackupRunner;
+
 class BackupApp
 {
-    protected $sapi = '';
-
-    protected $cli = [
-        'file' => [],
-        'args' => [],
-        'options' => [],
-    ];
+    protected string $sapi = '';
 
     /**
      * @var  array
      */
-    protected $options = [];
+    protected array $options = [];
 
     /**
      * Class init
@@ -60,9 +62,7 @@ class BackupApp
                 return;
             }
 
-            $this->authenticate();
-
-            $this->doBackup();
+            $this->downloadBackup();
         } catch (\Throwable $e) {
             $msg = isset($this->cli['options']['v']) ? (string) $e : $e->getMessage();
 
@@ -72,139 +72,50 @@ class BackupApp
 
     public function executeCli(): void
     {
-        [$this->cli['file'], $this->cli['args'], $this->cli['options']] = $this->parseArgv($_SERVER['argv']);
+        $console = new BackupCli('LYRASOFT Backup', options: $this->options);
+        $console->setDefaultCommand('backup');
+        $console->add(new CliBackupCommand());
+        $console->add(new CliTokenCommand());
+        $console->add(new CliRegisterCommand());
 
-        if (!empty($this->cli['options']['h'])) {
-            $this->help();
-        }
-
-        if (($this->cli['args'][0] ?? null) === 'token') {
-            echo $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
-            $this->close('', 200);
-        }
-
-        if (($this->cli['args'][0] ?? null) === 'nas') {
-            $token = $this->getToken($this->options['secret'] ?? $this->close('No secret', 400));
-            $pname = $this->options['name'] ?: 'backup';
-
-            $url = $this->ask('Site URL: ') ?: '{https://site.com}';
-            $url = rtrim($url, '/') . '/backup.php';
-
-            echo "\nNAS script:\n  curl -sSf --create-dirs -X POST $url --data \"token=$token\" -o /volume1/backup/$(date +%Y/%m/%d)/$pname-backup-$(date +%Y-%m-%d).zip -k\n\n";
-            $this->close('', 200);
-        }
-
-        $this->doBackup('php://stdout');
-        $this->close('', 200);
-    }
-
-    protected function help(): void
-    {
-        $file = $this->cli['file'];
-        echo <<<HELP
-LYRASOFT Backup script
-
-Options:
-    -h  Show help.
-    -v  Show more error details.
-
-Commands:
-    >|to    Backup to this position.
-    token   Show token for URL backup.
-    nas     Show NAS download script.
-    
-Usages:
-    php {$file} > /tmp/backup.zip   Backup to this file.
-    php {$file} > /tmp/             Backup to this dir with default file name.
-HELP;
-        $this->close('', 200);
-    }
-
-    public function doBackup($output = 'php://output', bool $headers = true)
-    {
-        set_time_limit(0);
-        ini_set('memory_limit', '1G');
-
-        if ($headers) {
-            $name = rawurldecode($this->getBackupFilename());
-            header('Content-Type: application/x-zip');
-            header("Content-Disposition: attachment; filename*=UTF-8''{$name}");
-            header('Pragma: public');
-            header('Cache-Control: public, must-revalidate');
-            header('Content-Transfer-Encoding: binary');
-        }
-
-        $zip = new ZipStream($output);
-
-        if ($this->getOption('dump_database', true)) {
-            [$proc, $pipe] = $this->sqlDump();
-
-            $stream = new CachingStream(new Stream($pipe));
-
-            $zip->addFileFromPsr7Stream('site-sql-backup.sql', $stream);
-
-            $stream->close();
-
-            if (proc_close($proc) !== 0) {
-                throw new \RuntimeException('DB error');
-            }
-        }
-
-        if ($this->getOption('dump_files')) {
-            $this->zipFiles($zip);
-        }
-
-        $zip->finish();
+        exit($console->run());
     }
 
     /**
-     * @return  resource[]
+     * @return  void
      */
-    protected function sqlDump(): array
+    protected function downloadBackup(): void
     {
-        $cmd = sprintf(
-            '%s -h %s -u %s -p"%s" %s %s',
-            $this->options['mysqldump'] ?? 'mysqldump',
-            $this->cli['options']['host'] ?? $this->options['database']['host'] ?? '',
-            $this->cli['options']['u'] ?? $this->options['database']['user'] ?? '',
-            $this->cli['options']['p'] ?? $this->options['database']['pass'] ?? '',
-            $this->cli['options']['db'] ?? $this->options['database']['dbname'] ?? '',
-            $this->cli['options']['extra'] ?? $this->options['mysqldump_extra'] ?? ''
-        );
+        $runner = new BackupRunner($this->options);
 
-        $descriptorspec = [
-            0 => ["pipe", "r"],   // stdin is a pipe that the child will read from
-            1 => ["pipe", "w"],   // stdout is a pipe that the child will write to
-            2 => ["pipe", "w"]    // stderr is a pipe that the child will write to
-        ];
+        $this->authenticate();
 
-        $process = proc_open($cmd, $descriptorspec, $pipes, getcwd(), []);
+        $name = rawurldecode($this->getBackupFilename());
+        header('Content-Type: application/x-zip');
+        header("Content-Disposition: attachment; filename*=UTF-8''{$name}");
+        header('Pragma: public');
+        header('Cache-Control: public, must-revalidate');
+        header('Content-Transfer-Encoding: binary');
 
-        return [$process, $pipes[1]];
-    }
-
-    protected function zipFiles(ZipStream $zip): void
-    {
-        $root = realpath($this->getOption('root'));
-
-        foreach (FileFilter::globAll($root, $this->options['pattern']) as $file) {
-            if (is_dir($file)) {
-                continue;
-            }
-
-            $dest = str_replace($root . DIRECTORY_SEPARATOR, '', $file);
-
-            $zip->addFileFromPath(str_replace('\\', '/', $dest), $file);
-        }
+        $runner->backup('php://output');
     }
 
     public function authenticate(): bool
     {
-        $token = $_REQUEST['token'] ?? $this->close('Invalid Token');
+        $token = '';
 
-        $key = $this->getOption('secret') ?? $this->close('No secret');
+        if ($auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '') {
+            sscanf($auth, 'Bearer %s', $token);
+        }
 
-        if ($this->getToken($key) !== $token) {
+        $token = $token ?: $_REQUEST['token'] ?? $this->close('Invalid Token');
+
+        $payload = (array) JWT::decode(
+            $token,
+            new Key($this->getOption('secret'), 'HS512')
+        );
+
+        if ($payload['iss'] !== 'lyra-backup' || $payload['sub'] !== 'backup-token') {
             $this->close('Invalid Token');
         }
 
@@ -262,77 +173,5 @@ HELP;
                 throw new ErrorException($errstr, $errno, 1, $errfile, $errline);
             }
         );
-    }
-
-    protected function parseArgv($argv)
-    {
-        $script = array_shift($argv);
-        $key    = null;
-        $args   = [];
-
-        $options = [];
-
-        for ($i = 0, $j = count($argv); $i < $j; $i++) {
-            $arg = $argv[$i];
-
-            // --foo --bar=baz
-            if (0 === strpos($arg, '--')) {
-                $eqPos = strpos($arg, '=');
-
-                // --foo
-                if ($eqPos === false) {
-                    $key = substr($arg, 2);
-
-                    // --foo value
-                    if ($i + 1 < $j && $argv[$i + 1][0] !== '-') {
-                        $value = $argv[$i + 1];
-                        $i++;
-                    } else {
-                        $value = $options[$key] ?? true;
-                    }
-
-                    $options[$key] = $value;
-                } else {
-                    // --bar=baz
-                    $key           = substr($arg, 2, $eqPos - 2);
-                    $value         = substr($arg, $eqPos + 1);
-                    $options[$key] = $value;
-                }
-            } elseif (0 === strpos($arg, '-')) {
-                // -k=value -abc
-
-                // -k=value
-                if (isset($arg[2]) && $arg[2] === '=') {
-                    $key           = $arg[1];
-                    $value         = substr($arg, 3);
-                    $options[$key] = $value;
-                } else {
-                    // -abc
-                    $chars = str_split(substr($arg, 1));
-
-                    foreach ($chars as $char) {
-                        $key           = $char;
-                        $options[$key] = isset($options[$key]) ? $options[$key] + 1 : 1;
-                    }
-
-                    // -a a-value
-                    if (($i + 1 < $j) && ($argv[$i + 1][0] !== '-') && (count($chars) === 1)) {
-                        $options[$key] = $argv[$i + 1];
-                        $i++;
-                    }
-                }
-            } else {
-                // Plain-arg
-                $args[] = $arg;
-            }
-        }
-
-        return [$script, $args, $options];
-    }
-
-    public function ask(string $question)
-    {
-        fwrite(STDOUT, $question);
-        return trim(fgets(STDIN), "\n");
     }
 }

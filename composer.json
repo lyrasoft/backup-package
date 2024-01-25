@@ -2,9 +2,9 @@
     "name": "lyrasoft/backup",
     "license": "MIT",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.0",
         "maennchen/zipstream-php": "^3.0",
-        "guzzlehttp/psr7": "^2.1"
+        "symfony/console": "^5.0||^6.0||^7.0"
     },
     "autoload": {
         "psr-4": {
@@ -15,5 +15,12 @@
         "post-create-project-cmd": [
             "php ./install_script.php"
         ]
+    },
+    "extra": {
+        "windwalker":{
+            "packages": [
+                "Lyrasoft\\Backup\\BackupPackage"
+            ]
+        }
     }
 }

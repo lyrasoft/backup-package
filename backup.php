@@ -1,15 +1,14 @@
 <?php
-/**
- * LYRASOFT backup script.
- *
- * @copyright  Copyright (C) 2015 LYRASOFT. All rights reserved.
- */
 
-use GuzzleHttp\Psr7\CachingStream;
-use GuzzleHttp\Psr7\Stream;
-use ZipStream\ZipStream;
+use Lyrasoft\Backup\BackupApp;
 
-include __DIR__ . '/vendor/autoload.php';
+$autoload = __DIR__ . '/vendor/autoload.php';
+
+if (!is_file($autoload)) {
+    $autoload = __DIR__ . '/../../autoload.php';
+}
+
+include $autoload;
 
 // Uncomment if debugging
 // error_reporting(-1);
@@ -49,8 +48,8 @@ $options = [
 ];
 
 // Set error handler
-BackupApplication::registerErrorHandler();
+BackupApp::registerErrorHandler();
 
-$app = new BackupApplication($options);
+$app = new BackupApp($options);
 
 $app->execute(PHP_SAPI);
