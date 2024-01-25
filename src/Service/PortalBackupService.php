@@ -107,7 +107,7 @@ class PortalBackupService
     {
         return Str::ensureRight(
             env('BACKUP_SERVER_APT_ENDPOINT')
-                ?: 'https://portal.simulr.co/api/',
+                ?: 'https://portal.simular.co/api/',
             '/'
         );
     }
@@ -117,6 +117,6 @@ class PortalBackupService
      */
     protected function getPortalUrl(): ?string
     {
-        return env('BACKUP_SERVER_URL') ?: 'https://portal.simulr.co/';
+        return env('BACKUP_SERVER_URL') ?: 'https://portal.simular.co/';
     }
 }
