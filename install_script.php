@@ -1,7 +1,6 @@
 <?php
 
-$file = __DIR__ . '/backup.php';
-$content = file_get_contents($file);
+$content = file_get_contents(__DIR__ . '/config.dist.php');
 $content = str_replace('{{ secret }}', $secret = bin2hex(random_bytes(16)), $content);
 
 $config = [];
@@ -63,7 +62,7 @@ if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true))
     );
 }
 
-$content = file_put_contents($file, $content);
+$content = file_put_contents(__DIR__ . '/config.php', $content);
 
 fwrite(STDOUT, "\nSuccess install backup.php file.");
 
@@ -73,7 +72,8 @@ if (in_array(strtolower(ask("Register backup to portal? [Y/n]") ?: 'y'), $y, tru
 
 fwrite(STDOUT, "\n");
 
-function ask($question) {
+function ask($question)
+{
     fwrite(STDOUT, $question);
     return trim(fgets(STDIN), "\n");
 }

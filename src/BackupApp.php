@@ -30,13 +30,6 @@ class BackupApp
     {
         $this->options = $options;
 
-        // Override
-        if (is_file(__DIR__ . '/' . $this->options['config'])) {
-            $override = require __DIR__ . '/' . $this->options['config'];
-
-            $this->options = array_merge($this->options, $override);
-        }
-
         $this->options['root'] = realpath($path = __DIR__ . '/' . trim($this->getOption('root'), '/'));
 
         if (!is_dir($this->options['root'])) {

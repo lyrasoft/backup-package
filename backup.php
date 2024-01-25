@@ -13,39 +13,12 @@ include $autoload;
 // Uncomment if debugging
 // error_reporting(-1);
 
-$options = [
-    /*
-     * Basic Information
-     */
-    'secret' => '{{ secret }}',
-    'name' => '',
-    'root' => '.',
+$configFile = __DIR__ . '/config.php';
+$options = [];
 
-    'dump_database' => 0,
-
-    'database' => [
-        'host' => 'localhost',
-        'user' => '',
-        'pass' => '',
-        'dbname' => '',
-    ],
-
-    'dump_files' => 0,
-
-    'pattern' => [
-        '/**/*',
-        '!/node_modules/**',
-        '!/vendor/**',
-        '!/.git/**',
-        '!/logs/*',
-        '!/cache/*',
-        '!/tmp/*',
-    ],
-
-    'config' => 'backup_config.php',
-    'mysqldump' => 'mysqldump',
-    'mysqldump_extra' => ''
-];
+if (is_file($configFile)) {
+    $options = include $configFile;
+}
 
 // Set error handler
 BackupApp::registerErrorHandler();
