@@ -19,7 +19,7 @@ use Windwalker\Utilities\StrNormalize;
 use function Windwalker\now;
 
 #[AsCommand(
-    'backup',
+    'run',
     'Run backup.'
 )]
 class CliBackupCommand extends Command
@@ -65,7 +65,7 @@ class CliBackupCommand extends Command
     }
 
     #[\ReturnTypeWillChange]
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $backupOutput = $input->getOption('output');
 

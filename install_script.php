@@ -1,5 +1,7 @@
 <?php
 
+error_reporting(E_ALL);
+
 $content = file_get_contents(__DIR__ . '/config.dist.php');
 $content = str_replace('{{ secret }}', $secret = bin2hex(random_bytes(16)), $content);
 
@@ -75,5 +77,5 @@ fwrite(STDOUT, "\n");
 function ask($question)
 {
     fwrite(STDOUT, $question);
-    return trim(fgets(STDIN), "\n");
+    return trim(fgets(STDIN), "\r\n");
 }

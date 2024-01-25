@@ -9,15 +9,25 @@ use Windwalker\Utilities\Options\OptionAccessTrait;
 
 class BackupCli extends Application
 {
-    use OptionAccessTrait;
-
     public function __construct(
         string $name = 'UNKNOWN',
         string $version = 'UNKNOWN',
-        array $options = []
+        protected array $options = []
     ) {
         parent::__construct($name, $version);
 
         $this->options = $options;
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    public function setOptions(array $options): static
+    {
+        $this->options = $options;
+
+        return $this;
     }
 }

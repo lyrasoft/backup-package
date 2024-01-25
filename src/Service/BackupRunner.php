@@ -8,17 +8,18 @@ use FilesystemIterator;
 use Firebase\JWT\JWT;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Symfony\Component\Process\Pipes\UnixPipes;
+use Symfony\Component\Process\Pipes\WindowsPipes;
+use Symfony\Component\Process\Process;
 use Windwalker\Utilities\Options\OptionAccessTrait;
 use Windwalker\Utilities\StrNormalize;
 use ZipStream\ZipStream;
 
 class BackupRunner
 {
-    use OptionAccessTrait;
-
-    public function __construct(array $options = [])
+    public function __construct(protected array $options = [])
     {
-        $this->options = $options;
+        //
     }
 
     public function token(): string
@@ -69,20 +70,7 @@ class BackupRunner
         );
 
         if ($this->getOption('dump_database') ?? true) {
-            [$proc, $pipe] = $this->sqlDump();
-
-            // $stream = new CachingStream(new Stream($pipe));
-
-            $zip->addFileFromStream(
-                $this->getOption('sql_file_name') ?? 'site-sql-backup.sql',
-                $pipe
-            );
-
-            // $stream->close();
-
-            if (proc_close($proc) !== 0) {
-                throw new \RuntimeException('DB error');
-            }
+            // $this->zipSql($zip);
         }
 
         if ($this->getOption('dump_files')) {
@@ -92,10 +80,42 @@ class BackupRunner
         return $zip->finish();
     }
 
+    protected function zipSql(ZipStream $zip): void
+    {
+        $process = $this->sqlDump();
+
+        $process->start();
+        $ref = new \ReflectionObject($process);
+        $prop = $ref->getProperty('processPipes');
+
+        /**
+         * @var $pipes WindowsPipes|UnixPipes
+         */
+        $pipes = $prop->getValue($process);
+
+        if ($pipes instanceof WindowsPipes) {
+            $fp = fopen($pipes->getFiles()[1], 'rb');
+            usleep(100000);
+        } else {
+            $fp = $pipes->pipes[1];
+        }
+
+        $zip->addFileFromStream(
+            $this->getOption('sql_file_name') ?? 'site-sql-backup.sql',
+            $fp
+        );
+
+        $process->stop();
+
+        // if (proc_close($proc) !== 0) {
+        //     throw new \RuntimeException('DB error');
+        // }
+    }
+
     /**
      * @return  resource[]
      */
-    protected function sqlDump(): array
+    protected function sqlDump(): Process
     {
         $pass = '';
 
@@ -104,7 +124,7 @@ class BackupRunner
         }
 
         $cmd = sprintf(
-            '%s -h %s -u %s %s %s %s',
+            '%s -h %s -u %s %s %s %s --no-tablespaces ',
             $this->options['mysqldump'] ?? 'mysqldump',
             $this->options['database']['host'] ?? '',
             $this->options['database']['user'] ?? '',
@@ -113,29 +133,28 @@ class BackupRunner
             $this->options['mysqldump_extra'] ?? ''
         );
 
-        $descriptorspec = [
-            0 => ["pipe", "r"],   // stdin is a pipe that the child will read from
-            1 => ["pipe", "w"],   // stdout is a pipe that the child will write to
-            2 => ["pipe", "w"]    // stderr is a pipe that the child will write to
-        ];
-
-        $process = proc_open($cmd, $descriptorspec, $pipes, getcwd(), []);
-
-        return [$process, $pipes[1]];
+        return Process::fromShellCommandline($cmd);
     }
 
     protected function zipFiles(ZipStream $zip): void
     {
-        $root = realpath($this->getOption('root'));
+        $root = $this->getOption('root');
 
         foreach (static::globAll($root, $this->options['pattern']) as $file) {
-            if (is_dir($file)) {
+            if (
+                $file->isDir()
+                || $file->isLink()
+                || $this->isJunction($file->getPathname())
+            ) {
                 continue;
             }
 
-            $dest = str_replace($root . DIRECTORY_SEPARATOR, '', $file);
+            $dest = str_replace($root . DIRECTORY_SEPARATOR, '', $file->getPathname());
 
-            $zip->addFileFromPath(str_replace('\\', '/', $dest), $file);
+            $zip->addFileFromPath(
+                str_replace('\\', '/', $dest),
+                $file->getPathname()
+            );
         }
     }
 
@@ -217,5 +236,48 @@ class BackupRunner
         $str = preg_replace('/(\s|[^A-Za-z0-9\-])+/', '-', $str);
 
         return trim($str, '-') . '.zip';
+    }
+
+    public function isJunction(string $junction)
+    {
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            return false;
+        }
+
+        // Important to clear all caches first
+        clearstatcache(true, $junction);
+
+        if (!is_dir($junction) || is_link($junction)) {
+            return false;
+        }
+
+        $stat = lstat($junction);
+
+        // S_ISDIR test (S_IFDIR is 0x4000, S_IFMT is 0xF000 bitmask)
+        return is_array($stat) ? 0x4000 !== ($stat['mode'] & 0xF000) : false;
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    public function setOptions(array $options): static
+    {
+        $this->options = $options;
+
+        return $this;
+    }
+
+    public function getOption(string $name, mixed $default = null): mixed
+    {
+        return $this->options[$name] ?? $default;
+    }
+
+    public function setOption(string $name, mixed $value): static
+    {
+        $this->options[$name] = $value;
+
+        return $this;
     }
 }

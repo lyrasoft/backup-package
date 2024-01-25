@@ -72,7 +72,6 @@ class BackupApp
     public function executeCli(): void
     {
         $console = new BackupCli('LYRASOFT Backup', options: $this->options);
-        $console->setDefaultCommand('backup');
         $console->add(new CliBackupCommand());
         $console->add(new CliTokenCommand());
         $console->add(new CliRegisterCommand());

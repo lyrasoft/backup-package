@@ -60,7 +60,7 @@ class BackupRegisterCommand extends Command
     }
 
     #[\ReturnTypeWillChange]
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $profile = $input->getArgument('profile');
         $show = $input->getOption('show');

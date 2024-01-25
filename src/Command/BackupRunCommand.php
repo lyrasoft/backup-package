@@ -46,7 +46,7 @@ class BackupRunCommand extends Command
     }
 
     #[\ReturnTypeWillChange]
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $profile = $input->getArgument('profile');
         $backupOutput = $input->getOption('output');
