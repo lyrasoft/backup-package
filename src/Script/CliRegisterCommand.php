@@ -21,6 +21,7 @@ use Windwalker\Console\Input\InputOption;
 )]
 class CliRegisterCommand extends Command
 {
+    #[\ReturnTypeWillChange]
     protected function configure()
     {
         $this->addOption(
@@ -45,6 +46,7 @@ class CliRegisterCommand extends Command
         );
     }
 
+    #[\ReturnTypeWillChange]
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $show = $input->getOption('show');

@@ -24,6 +24,7 @@ use function Windwalker\now;
 )]
 class CliBackupCommand extends Command
 {
+    #[\ReturnTypeWillChange]
     protected function configure()
     {
         $this->addOption(
@@ -63,6 +64,7 @@ class CliBackupCommand extends Command
         );
     }
 
+    #[\ReturnTypeWillChange]
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $backupOutput = $input->getOption('output');

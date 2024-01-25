@@ -37,7 +37,7 @@ class BackupApp
         }
 
         if (!is_dir($this->options['root'])) {
-            $this->close('Path: ' . $path . ' not exists');
+            $this->close("Path: {$path} not exists\n\n");
         }
 
         $this->options['root'] = realpath($this->options['root']);

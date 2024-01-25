@@ -26,6 +26,7 @@ class BackupTokenCommand extends Command
     #[Inject]
     protected ApplicationInterface $app;
 
+    #[\ReturnTypeWillChange]
     protected function configure()
     {
         $this->addArgument(
@@ -36,6 +37,7 @@ class BackupTokenCommand extends Command
         );
     }
 
+    #[\ReturnTypeWillChange]
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $profile = $input->getArgument('profile');

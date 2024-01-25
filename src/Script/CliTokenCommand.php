@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class CliTokenCommand extends Command
 {
+    #[\ReturnTypeWillChange]
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         /** @var BackupCli $app */
