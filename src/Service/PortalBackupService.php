@@ -91,7 +91,7 @@ class PortalBackupService
 
     public function getPortalDeviceLoginUrl(): string
     {
-        return rtrim(env('BACKUP_SERVER_URL'), '/') . '/device/login';
+        return rtrim($this->getPortalUrl(), '/') . '/device/login';
     }
 
     public function getHttpClient(): HttpClient
@@ -110,5 +110,13 @@ class PortalBackupService
                 ?: 'https://portal.simulr.co/api/',
             '/'
         );
+    }
+
+    /**
+     * @return  string|null
+     */
+    protected function getPortalUrl(): ?string
+    {
+        return env('BACKUP_SERVER_URL') ?: 'https://portal.simulr.co/';
     }
 }
