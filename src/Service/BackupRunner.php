@@ -124,7 +124,7 @@ class BackupRunner
 
         $cmd = sprintf(
             '%s -h %s -u %s %s %s %s --no-tablespaces ',
-            $this->options['mysqldump'] ?? 'mysqldump',
+            $this->findMysqldump(),
             $this->options['database']['host'] ?? '',
             $this->options['database']['user'] ?? '',
             $pass,
@@ -237,7 +237,7 @@ class BackupRunner
         return trim($str, '-') . '.zip';
     }
 
-    public function isJunction(string $junction)
+    public function isJunction(string $junction): bool
     {
         if (DIRECTORY_SEPARATOR !== '\\') {
             return false;
@@ -254,6 +254,63 @@ class BackupRunner
 
         // S_ISDIR test (S_IFDIR is 0x4000, S_IFMT is 0xF000 bitmask)
         return is_array($stat) ? 0x4000 !== ($stat['mode'] & 0xF000) : false;
+    }
+
+    protected function findMysqldump(): string
+    {
+        if ($md = (string) env('MYSQLDUMP_BINARY')) {
+            return $md;
+        }
+
+        if ($md = (string) $this->getOption('mysqldump_binary')) {
+            return $md;
+        }
+
+        $process = Process::fromShellCommandline('which mysqldump');
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return $process->getOutput();
+        }
+
+        $pos = [];
+
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $pos = [
+                'C:\xampp\mysql\bin\mysqldump.exe',
+            ];
+        } elseif (static::isUnix()) {
+            $pos = [
+                '/Applications/XAMPP/xamppfiles/bin/mysqldump',
+                '/Applications/AMPPS/bin/mysqldump',
+            ];
+        }
+
+        foreach ($pos as $md) {
+            if (is_file($md) && is_executable($md)) {
+                return $md;
+            }
+        }
+
+        return 'mysqldump';
+    }
+
+    public static function isUnix(): bool
+    {
+        $unames = [
+            'CYG',
+            'DAR',
+            'FRE',
+            'HP-',
+            'IRI',
+            'LIN',
+            'NET',
+            'OPE',
+            'SUN',
+            'UNI',
+        ];
+
+        return in_array(strtoupper(substr(PHP_OS, 0, 3)), $unames);
     }
 
     public function getOptions(): array

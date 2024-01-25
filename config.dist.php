@@ -31,7 +31,6 @@ return [
         '!/tmp/*',
     ],
 
-    'config' => 'backup_config.php',
-    'mysqldump' => 'mysqldump',
+    'mysqldump_binary' => null,
     'mysqldump_extra' => ''
 ];

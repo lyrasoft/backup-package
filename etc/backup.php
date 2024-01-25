@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 return [
     'backup' => [
+        'providers' => [
+            \Lyrasoft\Backup\BackupPackage::class
+        ],
         'profiles' => [
             'default' => [
                 /*
@@ -34,8 +37,7 @@ return [
                     '!/tmp/*',
                 ],
 
-                'config' => 'backup_config.php',
-                'mysqldump' => 'mysqldump',
+                'mysqldump_binary' => null,
                 'mysqldump_extra' => ''
             ]
         ]
