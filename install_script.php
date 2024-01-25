@@ -64,7 +64,7 @@ if (in_array(strtolower(ask("Do you want to dump DB? [Y/n]") ?: 'y'), $y, true))
 
 $content = file_put_contents(__DIR__ . '/config.php', $content);
 
-fwrite(STDOUT, "\nSuccess install backup.php file.");
+fwrite(STDOUT, "\nSuccess install backup.php file.\n\n");
 
 if (in_array(strtolower(ask("Register backup to portal? [Y/n]") ?: 'y'), $y, true)) {
     exec('php ./backup.php register');

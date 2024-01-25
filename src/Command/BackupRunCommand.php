@@ -57,6 +57,7 @@ class BackupRunCommand extends Command
 
         $options['sql_file_name'] ??= $this->getSqlFileName();
         $options['secret'] = $this->app->getSecret();
+        $options['root'] = WINDWALKER_ROOT;
 
         $runner = new BackupRunner($options);
         $runner->backup($backupOutput);
