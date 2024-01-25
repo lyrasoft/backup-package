@@ -30,9 +30,11 @@ class BackupApp
     {
         $this->options = $options;
 
-        $this->options['root'] = realpath($path = __DIR__ . '/' . trim($this->getOption('root'), '/'));
-
         if (!is_dir($this->options['root'])) {
+            $this->options['root'] = realpath($path = __DIR__ . '/' . trim($this->getOption('root'), '/'));
+        }
+
+        if (!$this->options['root'] || !is_dir($this->options['root'])) {
             $this->close('Path: ' . $path . ' not exists');
         }
     }
