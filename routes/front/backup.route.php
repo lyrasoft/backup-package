@@ -2,9 +2,7 @@
 
 namespace App\Routes;
 
-use App\Module\Admin\Dashboard\DashboardController;
-use App\Module\Admin\Dashboard\DashboardView;
-use App\Module\Backup\BackupController;
+use Lyrasoft\Backup\Module\Backup\BackupController;
 use Windwalker\Core\Router\RouteCreator;
 
 /** @var  RouteCreator $router */
