@@ -43,15 +43,6 @@ class BackupRunner
         );
     }
 
-    public function registerData(string $title, string $name, string $url)
-    {
-        return [
-            'title' => $title,
-            'name' => $name,
-            'url' => $url . '/backup'
-        ];
-    }
-
     public function nas(string $name, string $url): string
     {
         $name = StrNormalize::toKebabCase($name);
@@ -61,7 +52,7 @@ class BackupRunner
             "-o /volume1/backup/$(date +%Y/%m/%d)/$name-backup-$(date +%Y-%m-%d).zip -k\n\n";
     }
 
-    public function backup(mixed $outputStream): true
+    public function backup(mixed $outputStream): bool
     {
         set_time_limit(0);
         ini_set('memory_limit', '1G');
