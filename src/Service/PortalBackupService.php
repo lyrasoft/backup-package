@@ -14,7 +14,7 @@ class PortalBackupService
     {
         $http = $this->getHttpClient();
         $res = $http->post(
-            'backup/register',
+            $this->getPortalApiEndpoint('backup/register'),
             $data,
             [
                 'headers' => [
@@ -35,7 +35,7 @@ class PortalBackupService
         $http = $this->getHttpClient();
 
         $res = $http->get(
-            'device/auth',
+            $this->getPortalApiEndpoint('device/auth'),
             [
                 'params' => [
                     'scope' => 'backup'
@@ -76,7 +76,7 @@ class PortalBackupService
     {
         $http = $this->getHttpClient();
         $res = $http->post(
-            'device/access-token',
+            $this->getPortalApiEndpoint('device/access-token'),
             [
                 'device_token' => $dt
             ]
@@ -91,32 +91,45 @@ class PortalBackupService
 
     public function getPortalDeviceLoginUrl(): string
     {
-        return rtrim($this->getPortalUrl(), '/') . '/device/login';
+        return $this->getPortalUrl('device/login');
     }
 
     public function getHttpClient(): HttpClient
     {
-        return (new HttpClient())
-            ->withBaseUri($this->getPortalApiHost());
+        return new HttpClient();
     }
 
     /**
+     * @param  string  $path
+     *
      * @return  string
      */
-    protected function getPortalApiHost(): string
+    protected function getPortalApiEndpoint(string $path = ''): string
     {
-        return Str::ensureRight(
+        $host = Str::ensureRight(
             env('BACKUP_SERVER_APT_ENDPOINT')
                 ?: 'https://portal.simular.co/api/',
             '/'
         );
+
+        if ($path) {
+            $host .= $path;
+        }
+
+        return $host;
     }
 
     /**
      * @return  string|null
      */
-    protected function getPortalUrl(): ?string
+    protected function getPortalUrl(string $path = ''): ?string
     {
-        return env('BACKUP_SERVER_URL') ?: 'https://portal.simular.co/';
+        $url = Str::ensureRight(env('BACKUP_SERVER_URL') ?: 'https://portal.simular.co/', '/');
+
+        if ($path) {
+            $url .= $path;
+        }
+
+        return $url;
     }
 }
