@@ -13,6 +13,9 @@ use Windwalker\Core\Attributes\Controller;
 use Windwalker\Http\Helper\HeaderHelper;
 use Windwalker\Http\Output\Output;
 use Windwalker\Http\Response\Response;
+use Windwalker\Utilities\StrNormalize;
+
+use function Windwalker\now;
 
 #[Controller]
 class BackupController
@@ -39,6 +42,10 @@ class BackupController
             throw new \RuntimeException("Backup profile: $profile not found.");
         }
 
+        $options['sql_file_name'] ??= $this->getSqlFileName($app);
+        $options['secret'] = $backupPackage->getSecret();
+        $options['root'] = WINDWALKER_ROOT;
+
         $runner = new BackupRunner($options);
 
         $payload = (array) JWT::decode($token, new Key($backupPackage->getSecret(), 'HS512'));
@@ -56,5 +63,17 @@ class BackupController
 
         $runner->backup('php://output');
         die;
+    }
+
+    protected function getSqlFileName(AppContext $app): string
+    {
+        $appName = $app->getAppName();
+        $time = now('Y-m-d-H-i-s');
+
+        if ($appName) {
+            return StrNormalize::toKebabCase($appName) . "-sql-backup-$time.sql";
+        }
+
+        return "site-sql-backup-$time.sql";
     }
 }
