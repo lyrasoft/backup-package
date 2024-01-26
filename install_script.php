@@ -17,7 +17,7 @@ $content = str_replace(
     $content
 );
 
-if (in_array(strtolower(ask("Do you want to dump Files? [Y/n]") ?: 'y'), $y, true)) {
+if (in_array(strtolower(ask("Do you want to dump Files? [y/N]") ?: 'n'), $y, true)) {
     $root = ask('Backup Root[.]: ') ?: '.';
 
     $content = str_replace(
@@ -69,7 +69,9 @@ $content = file_put_contents(__DIR__ . '/config.php', $content);
 fwrite(STDOUT, "\nSuccess install backup.php file.\n\n");
 
 if (in_array(strtolower(ask("Register backup to portal? [Y/n]") ?: 'y'), $y, true)) {
-    exec('php ./backup.php register');
+    $_SERVER['argv'] = [__FILE__, 'register'];
+
+    include __DIR__ . '/backup.php';
 }
 
 fwrite(STDOUT, "\n");
