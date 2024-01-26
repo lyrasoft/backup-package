@@ -27,7 +27,7 @@ class BackupPackage extends AbstractPackage implements ServiceProviderInterface
 
     public function getSecret(): string
     {
-        if (method_exists($this->app, 'getSecret')) {
+        if (!method_exists($this->app, 'getSecret')) {
             return (string) $this->app->config('app.secret')
                 ?: throw new \RuntimeException('This site has no secret');
         }

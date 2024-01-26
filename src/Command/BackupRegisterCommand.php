@@ -107,7 +107,7 @@ class BackupRegisterCommand extends Command
 
             $output->writeln('');
             $output->writeln('');
-            $output->writeln('Backup register SUCCESS.');
+            $output->writeln('Backup register <info>SUCCESS</info>.');
 
             if ($data['link'] ?? null) {
                 $output->writeln('Please open this URL to configure it:');

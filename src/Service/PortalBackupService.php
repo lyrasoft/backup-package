@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Lyrasoft\Backup\Service;
 
+use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Windwalker\Http\Helper\ResponseHelper;
 use Windwalker\Http\HttpClient;
 use Windwalker\Utilities\Str;
 
@@ -23,11 +25,9 @@ class PortalBackupService
             ]
         );
 
-        if (!$res->isSuccess()) {
-            throw new \RuntimeException($res->getReasonPhrase(), $res->getStatusCode());
-        }
+        $data = $this->extractResponse($res);
 
-        return $res->toArray()['data'] ?? [];
+        return $data['data'] ?? [];
     }
 
     public function auth(OutputInterface $output): string
@@ -43,11 +43,9 @@ class PortalBackupService
             ],
         );
 
-        if (!$res->isSuccess()) {
-            throw new \RuntimeException($res->getReasonPhrase(), $res->getStatusCode());
-        }
+        $data = $this->extractResponse($res);
 
-        $result = $res->toArray()['data'] ?? [];
+        $result = $data['data'] ?? [];
 
         $code = $result['code'];
         $dt = $result['device_token'];
@@ -82,11 +80,13 @@ class PortalBackupService
             ]
         );
 
-        if (!$res->isSuccess()) {
-            return null;
+        try {
+            $data = $this->extractResponse($res);
+        } catch (\RuntimeException $e) {
+            // No actions
         }
 
-        return $res->toArray()['data']['access_token'] ?? null;
+        return $data['data']['access_token'] ?? null;
     }
 
     public function getPortalDeviceLoginUrl(): string
@@ -97,6 +97,21 @@ class PortalBackupService
     public function getHttpClient(): HttpClient
     {
         return new HttpClient();
+    }
+
+    public function extractResponse(ResponseInterface $res): array
+    {
+        $body = (string) $res->getBody();
+        $body = (array) json_decode($body, true);
+
+        if (!ResponseHelper::isSuccess($res->getStatusCode())) {
+            throw new \RuntimeException(
+                $body['message'] ?? $res->getReasonPhrase(),
+                $res->getStatusCode()
+            );
+        }
+
+        return $body;
     }
 
     /**
