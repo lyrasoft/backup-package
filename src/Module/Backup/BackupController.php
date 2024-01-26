@@ -58,6 +58,7 @@ class BackupController
             new Response(),
             $runner->getBackupFilename($app->getAppName())
         );
+        $res = $res->withHeader('Content-Type', 'application/zip');
         $output = new Output();
         $output->sendHeaders($res);
 
