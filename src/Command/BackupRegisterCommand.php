@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lyrasoft\Backup\Command;
 
+use Lyrasoft\Backup\BackupPackage;
 use Lyrasoft\Backup\Service\BackupRunner;
 use Lyrasoft\Backup\Service\PortalBackupService;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -26,6 +27,9 @@ class BackupRegisterCommand extends Command
 {
     #[Inject]
     protected ApplicationInterface $app;
+
+    #[Inject]
+    protected BackupPackage $backupPackage;
 
     #[\ReturnTypeWillChange]
     protected function configure()
@@ -71,7 +75,7 @@ class BackupRegisterCommand extends Command
             throw new \RuntimeException("Backup profile: $profile not found.");
         }
 
-        $options['secret'] = $this->app->getSecret();
+        $options['secret'] = $this->backupPackage->getSecret();
 
         /** @var QuestionHelper $questionHelper */
         $questionHelper = $this->getHelper('question');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lyrasoft\Backup\Command;
 
+use Lyrasoft\Backup\BackupPackage;
 use Lyrasoft\Backup\Service\BackupRunner;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -25,6 +26,9 @@ class BackupRunCommand extends Command
 {
     #[Inject]
     protected ApplicationInterface $app;
+
+    #[Inject]
+    protected BackupPackage $backupPackage;
 
     #[\ReturnTypeWillChange]
     protected function configure()
@@ -58,7 +62,7 @@ class BackupRunCommand extends Command
         }
 
         $options['sql_file_name'] ??= $this->getSqlFileName();
-        $options['secret'] = $this->app->getSecret();
+        $options['secret'] = $this->backupPackage->getSecret();
         $options['root'] = WINDWALKER_ROOT;
 
         $runner = new BackupRunner($options);
