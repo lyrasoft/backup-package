@@ -22,7 +22,7 @@ class BackupPackage extends AbstractPackage implements ServiceProviderInterface
     public function install(PackageInstaller $installer): void
     {
         $installer->installConfig(static::path('etc/*.php'), 'config');
-        $installer->installConfig(static::path('routes/**/*.php'), 'routes');
+        $installer->installRoutes(static::path('routes/**/*.php'), 'routes');
     }
 
     public function getSecret(): string
