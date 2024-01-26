@@ -40,6 +40,7 @@ class BackupPackage extends AbstractPackage implements ServiceProviderInterface
      */
     public function register(Container $container): void
     {
+        $container->prepareSharedObject(static::class);
         $container->mergeParameters(
             'commands',
             [
