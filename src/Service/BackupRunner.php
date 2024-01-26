@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lyrasoft\Backup\Service;
 
+use Composer\InstalledVersions;
 use FilesystemIterator;
 use Firebase\JWT\JWT;
 use RecursiveDirectoryIterator;
@@ -11,7 +12,9 @@ use RecursiveIteratorIterator;
 use Symfony\Component\Process\Pipes\UnixPipes;
 use Symfony\Component\Process\Pipes\WindowsPipes;
 use Symfony\Component\Process\Process;
+use Windwalker\Stream\CachingStream;
 use Windwalker\Utilities\StrNormalize;
+use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 class BackupRunner
@@ -58,28 +61,41 @@ class BackupRunner
             "-o /volume1/backup/$(date +%Y/%m/%d)/$name-backup-$(date +%Y-%m-%d).zip -k\n\n";
     }
 
-    public function backup(mixed $outputStream): int
+    public function backup(mixed $outputStream): true
     {
         set_time_limit(0);
         ini_set('memory_limit', '1G');
 
-        $zip = new ZipStream(
-            outputStream: $outputStream,
-            sendHttpHeaders: false
-        );
+        $ver = InstalledVersions::getPrettyVersion('maennchen/zipstream-php');
+        $isVer2 = version_compare($ver, '3.0', '<');
+
+        if ($isVer2) {
+            $options = new Archive();
+            $options->setSendHttpHeaders(false);
+
+            $zip = new ZipStream($outputStream, $options);
+        } else {
+            $zip = new ZipStream(
+                outputStream: $outputStream,
+                sendHttpHeaders: false
+            );
+        }
+
 
         if ($this->getOption('dump_database') ?? true) {
-            $this->zipSql($zip);
+            $this->zipSql($zip, $isVer2);
         }
 
         if ($this->getOption('dump_files')) {
             $this->zipFiles($zip);
         }
 
-        return $zip->finish();
+        $zip->finish();
+
+        return true;
     }
 
-    protected function zipSql(ZipStream $zip): void
+    protected function zipSql(ZipStream $zip, bool $isVer2 = false): void
     {
         $process = $this->sqlDump();
 
@@ -99,10 +115,15 @@ class BackupRunner
             $fp = $pipes->pipes[1];
         }
 
-        $zip->addFileFromStream(
-            $this->getOption('sql_file_name') ?? 'site-sql-backup.sql',
-            $fp
-        );
+        $fileName = $this->getOption('sql_file_name') ?? 'site-sql-backup.sql';
+
+        if ($isVer2) {
+            $fp = new CachingStream($fp);
+
+            $zip->addFileFromPsr7Stream($fileName, $fp);
+        } else {
+            $zip->addFileFromStream($fileName, $fp);
+        }
 
         $process->stop();
 
@@ -270,7 +291,7 @@ class BackupRunner
         $process->run();
 
         if ($process->isSuccessful()) {
-            return $process->getOutput();
+            return trim($process->getOutput());
         }
 
         $pos = [];
