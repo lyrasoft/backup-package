@@ -18,20 +18,20 @@ return [
                     'dbname' => env('DATABASE_NAME'),
                 ],
 
-                'dump_files' => 0,
+                'dump_files' => true,
 
                 'pattern' => [
-                    '/**/*',
-                    '!/node_modules/**',
-                    '!/vendor/**',
-                    '!/.git/**',
-                    '!/logs/*',
-                    '!/cache/*',
-                    '!/tmp/*',
+                    '/www/assets/upload/**/*',
+                    // '!/node_modules/**',
+                    // '!/vendor/**',
+                    // '!/.git/**',
+                    // '!/logs/*',
+                    // '!/cache/*',
+                    // '!/tmp/*',
                 ],
 
                 'mysqldump_binary' => null,
-                'mysqldump_extra' => ''
+                'mysqldump_extra' => env('MYSQLDUMP_EXTRA_OPTIONS'),
             ]
         ]
     ]
