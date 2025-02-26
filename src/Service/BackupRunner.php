@@ -57,6 +57,8 @@ class BackupRunner
         set_time_limit(0);
         ini_set('memory_limit', '1G');
 
+        $process = $this->sqlDump();
+
         $ver = InstalledVersions::getPrettyVersion('maennchen/zipstream-php');
         $isVer2 = version_compare($ver, '3.0', '<');
 
@@ -71,7 +73,6 @@ class BackupRunner
                 sendHttpHeaders: false
             );
         }
-
 
         if ($this->getOption('dump_database') ?? true) {
             $this->zipSql($zip, $isVer2);
@@ -128,19 +129,22 @@ class BackupRunner
      */
     protected function sqlDump(): Process
     {
+        $dbOptions = $this->options['database'];
+
         $pass = '';
 
-        if ($p = $this->options['database']['pass'] ?? '') {
+        if ($p = $dbOptions['password'] ?? $dbOptions['pass'] ?? '') {
             $pass = "-p\"$p\"";
         }
 
         $cmd = sprintf(
-            '%s -h %s -u %s %s %s %s --no-tablespaces ',
+            '%s -h %s --port %s -u %s %s %s %s ',
             $this->findMysqldump(),
-            $this->options['database']['host'] ?? '',
-            $this->options['database']['user'] ?? '',
+            $dbOptions['host'] ?? '',
+            $dbOptions['port'] ?? 3306,
+            $dbOptions['user'] ?? '',
             $pass,
-            $this->options['database']['dbname'] ?? '',
+            $dbOptions['dbname'] ?? '',
             $this->options['mysqldump_extra'] ?? ''
         );
 

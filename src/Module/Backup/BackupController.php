@@ -10,6 +10,7 @@ use Lyrasoft\Backup\BackupPackage;
 use Lyrasoft\Backup\Service\BackupRunner;
 use Windwalker\Core\Application\AppContext;
 use Windwalker\Core\Attributes\Controller;
+use Windwalker\Core\Manager\DatabaseManager;
 use Windwalker\Http\Helper\HeaderHelper;
 use Windwalker\Http\Output\Output;
 use Windwalker\Http\Response\Response;
@@ -20,7 +21,7 @@ use function Windwalker\now;
 #[Controller]
 class BackupController
 {
-    public function backup(AppContext $app, BackupPackage $backupPackage)
+    public function backup(AppContext $app, BackupPackage $backupPackage, DatabaseManager $databaseManager)
     {
         $auth = $app->getAppRequest()->getHeader('authorization');
 
@@ -45,6 +46,18 @@ class BackupController
         $options['sql_file_name'] ??= $this->getSqlFileName($app);
         $options['secret'] = $backupPackage->getSecret();
         $options['root'] = WINDWALKER_ROOT;
+
+        $dbOptions = $options['database'] ?? [];
+        $connection = $dbOptions['connection'] ?? null;
+
+        if ($connection) {
+            $db = $databaseManager->get($connection);
+
+            $dbOptions = $db->getOptions();
+            $dbOptions = DatabaseManager::mergeDsnToOptions($dbOptions);
+        }
+
+        $options['database'] = $dbOptions;
 
         $runner = new BackupRunner($options);
 
