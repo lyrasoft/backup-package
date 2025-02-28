@@ -9,6 +9,7 @@ use FilesystemIterator;
 use Firebase\JWT\JWT;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Pipes\UnixPipes;
 use Symfony\Component\Process\Pipes\WindowsPipes;
 use Symfony\Component\Process\Process;
@@ -124,10 +125,24 @@ class BackupRunner
         // }
     }
 
+    public function checkDbConnection(): void
+    {
+        if ($this->getOption('dump_database') ?? true) {
+            show($this->options);exit(' @Checkpoint');
+            $process = $this->sqlDump(true);
+            
+            try {
+                $process->mustRun();
+            } catch (ProcessFailedException $e) {
+                throw new \RuntimeException('Database connection failed.', $e->getCode());
+            }
+        }
+    }
+
     /**
      * @return  resource[]
      */
-    protected function sqlDump(): Process
+    protected function sqlDump(bool $check = false): Process
     {
         $dbOptions = $this->options['database'];
 
@@ -138,14 +153,15 @@ class BackupRunner
         }
 
         $cmd = sprintf(
-            '%s -h %s --port %s -u %s %s %s %s ',
+            '%s -h %s --port %s -u %s %s %s %s --no-tablespaces %s',
             $this->findMysqldump(),
             $dbOptions['host'] ?? '',
             $dbOptions['port'] ?? 3306,
             $dbOptions['user'] ?? '',
             $pass,
             $dbOptions['dbname'] ?? '',
-            $this->options['mysqldump_extra'] ?? ''
+            $this->options['mysqldump_extra'] ?? '',
+            $check ? '--no-data --databases mysql > /dev/null' : '',
         );
 
         return Process::fromShellCommandline($cmd);

@@ -67,6 +67,8 @@ class BackupController
             return 'Invalid Token';
         }
 
+        $runner->checkDbConnection();
+
         $res = HeaderHelper::prepareAttachmentHeaders(
             new Response(),
             $runner->getBackupFilename($app->getAppName())
