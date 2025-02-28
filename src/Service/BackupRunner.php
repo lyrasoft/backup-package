@@ -128,7 +128,6 @@ class BackupRunner
     public function checkDbConnection(): void
     {
         if ($this->getOption('dump_database') ?? true) {
-            show($this->options);exit(' @Checkpoint');
             $process = $this->sqlDump(true);
             
             try {
