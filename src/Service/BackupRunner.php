@@ -152,7 +152,6 @@ class BackupRunner
         $dbOptions = $this->options['database'];
 
         $pass = '';
-        $dbOptions['password'] = '123456';;
 
         if ($p = $dbOptions['password'] ?? $dbOptions['pass'] ?? '') {
             $pass = "-p\"$p\"";
