@@ -133,7 +133,13 @@ class BackupRunner
             try {
                 $process->mustRun();
             } catch (ProcessFailedException $e) {
-                throw new \RuntimeException('Database connection failed.', $e->getCode());
+                throw new \RuntimeException(
+                    sprintf(
+                        'Database dumper connection error: %s',
+                        $process->getErrorOutput()
+                    ),
+                    $e->getCode()
+                );
             }
         }
     }
@@ -146,10 +152,13 @@ class BackupRunner
         $dbOptions = $this->options['database'];
 
         $pass = '';
+        $dbOptions['password'] = '123456';;
 
         if ($p = $dbOptions['password'] ?? $dbOptions['pass'] ?? '') {
             $pass = "-p\"$p\"";
         }
+
+        $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
 
         $cmd = sprintf(
             '%s -h %s --port %s -u %s %s %s %s --no-tablespaces %s',
@@ -160,7 +169,7 @@ class BackupRunner
             $pass,
             $dbOptions['dbname'] ?? '',
             $this->options['mysqldump_extra'] ?? '',
-            $check ? '--no-data --databases mysql > /dev/null' : '',
+            $check ? "--no-data --databases \"{$dbOptions['dbname']}\" > $null" : '',
         );
 
         return Process::fromShellCommandline($cmd);
@@ -301,7 +310,7 @@ class BackupRunner
         $process->run();
 
         if ($process->isSuccessful()) {
-            return trim($process->getOutput());
+            return static::fixForWindowsGitBash(trim($process->getOutput()));
         }
 
         $pos = [];
@@ -319,11 +328,36 @@ class BackupRunner
 
         foreach ($pos as $md) {
             if (is_file($md) && is_executable($md)) {
-                return $md;
+                return static::fixForWindowsGitBash($md);
             }
         }
 
         return 'mysqldump';
+    }
+
+    protected static function fixForWindowsGitBash(string $cmd): array|string|null
+    {
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            return $cmd;
+        }
+
+        // Find `/c/...`
+        if (preg_match('/^\/[a-zA-Z]+\/(.*)/', $cmd, $matches)) {
+            // Replace `/\w+/` to `\w+:/...`
+            $cmd = preg_replace_callback(
+                '/^\/([a-zA-Z]+)\//',
+                static fn ($m) => strtoupper($m[1]) . ':/',
+                $cmd
+            );
+        }
+
+        // $cmd = Path::normalize($cmd);
+
+        // if (!is_file($cmd)) {
+        //     return $cmd . '.exe';
+        // }
+
+        return $cmd;
     }
 
     public static function isUnix(): bool

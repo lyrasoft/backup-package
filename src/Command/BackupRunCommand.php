@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Windwalker\Core\Application\ApplicationInterface;
+use Windwalker\Core\Manager\DatabaseManager;
 use Windwalker\DI\Attributes\Inject;
 use Windwalker\Utilities\StrNormalize;
 
@@ -29,6 +30,9 @@ class BackupRunCommand extends Command
 
     #[Inject]
     protected BackupPackage $backupPackage;
+
+    #[Inject]
+    protected DatabaseManager $databaseManager;
 
     #[\ReturnTypeWillChange]
     protected function configure()
@@ -65,7 +69,20 @@ class BackupRunCommand extends Command
         $options['secret'] = $this->backupPackage->getSecret();
         $options['root'] = WINDWALKER_ROOT;
 
+        $dbOptions = $options['database'] ?? [];
+        $connection = $dbOptions['connection'] ?? null;
+
+        if ($connection) {
+            $db = $this->databaseManager->get($connection);
+
+            $dbOptions = $db->getOptions();
+            $dbOptions = DatabaseManager::mergeDsnToOptions($dbOptions);
+        }
+
+        $options['database'] = $dbOptions;
+
         $runner = new BackupRunner($options);
+        $runner->checkDbConnection();
         $runner->backup($backupOutput);
 
         return 0;
