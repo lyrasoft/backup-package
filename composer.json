@@ -8,7 +8,7 @@
         "symfony/process": "^5.0||^6.0||^7.0",
         "windwalker/http": "^4.0",
         "windwalker/data": "^4.0",
-        "firebase/php-jwt": "^5.0||^6.0"
+        "firebase/php-jwt": "^5.0||^6.0||^7.0"
     },
     "autoload": {
         "psr-4": {
