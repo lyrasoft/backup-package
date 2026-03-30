@@ -35,7 +35,7 @@ class BackupRunCommand extends Command
     protected DatabaseManager $databaseManager;
 
     #[\ReturnTypeWillChange]
-    protected function configure()
+    protected function configure(): void
     {
         $this->addArgument(
             'profile',

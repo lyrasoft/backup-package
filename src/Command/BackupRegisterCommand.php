@@ -32,7 +32,7 @@ class BackupRegisterCommand extends Command
     protected BackupPackage $backupPackage;
 
     #[\ReturnTypeWillChange]
-    protected function configure()
+    protected function configure(): void
     {
         $this->addArgument(
             'profile',
