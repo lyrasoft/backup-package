@@ -32,7 +32,12 @@ class BackupPackage extends AbstractPackage implements ServiceProviderInterface
                 ?: throw new \RuntimeException('This site has no secret');
         }
 
-        return $this->app->getSecret();
+        return hash_hkdf(
+            'sha512',
+            $this->app->getSecret(),
+            64,
+            'lyra.backup',
+        );
     }
 
     /**
